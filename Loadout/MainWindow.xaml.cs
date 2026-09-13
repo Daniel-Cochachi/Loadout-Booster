@@ -58,6 +58,22 @@ public partial class MainWindow : FluentWindow
         _vm.StartMonitor();
         _ = WarmUpBoostAsync();
         _ = CleanupOrphanCoversAsync();
+        _ = CheckUpdatesAsync();
+    }
+
+    // Velopack: chequeo silencioso 5s después de abrir. Solo actúa en installs Velopack.
+    private async Task CheckUpdatesAsync()
+    {
+        try
+        {
+            await Task.Delay(5000);
+            string? msg = await UpdateService.CheckAndApplyAsync(question =>
+                Dispatcher.InvokeAsync(() => ConfirmDialog.Ask(
+                    this, "ACTUALIZACIÓN", question, "REINICIAR", "DESPUÉS")).Task);
+            if (msg != null)
+                await Dispatcher.InvokeAsync(() => { if (_vm != null) _vm.StatusLine = msg; });
+        }
+        catch { }
     }
 
     private async Task CleanupOrphanCoversAsync()

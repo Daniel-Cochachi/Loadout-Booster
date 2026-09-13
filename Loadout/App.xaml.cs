@@ -19,6 +19,18 @@ public partial class App : Application
 
     private static Mutex? _instanceMutex;
 
+    [STAThread]
+    private static void Main(string[] args)
+    {
+        // Velopack: gestiona install/update/uninstall antes de arrancar WPF.
+        // Sin esto, el Setup.exe y los deltas no pueden aplicarse.
+        Velopack.VelopackApp.Build().Run();
+
+        App app = new();
+        app.InitializeComponent();
+        app.Run();
+    }
+
     protected override void OnStartup(StartupEventArgs e)
     {
         AppDomain.CurrentDomain.UnhandledException += (_, args)

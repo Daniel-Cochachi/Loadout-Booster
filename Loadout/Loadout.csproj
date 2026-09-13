@@ -9,7 +9,15 @@
     <PublishReadyToRun>true</PublishReadyToRun>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <ApplicationIcon>Assets\Logo\loadout.ico</ApplicationIcon>
+    <!-- Velopack: Main propio en App.xaml.cs (evita overhead WPF al aplicar updates) -->
+    <StartupObject>Loadout.App</StartupObject>
+    <Version>1.0.2</Version>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ApplicationDefinition Remove="App.xaml" />
+    <Page Include="App.xaml" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Update="Data\schema.sql">
@@ -28,6 +36,7 @@
     <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.11" />
     <PackageReference Include="Microsoft.Toolkit.Uwp.Notifications" Version="7.1.3" />
+    <PackageReference Include="Velopack" Version="1.2.0" />
     <PackageReference Include="WPF-UI" Version="4.3.0" />
   </ItemGroup>
 

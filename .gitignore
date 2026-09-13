@@ -4,6 +4,7 @@ obj/
 *.user
 publish-exe/
 publish/
+publish-velopack/
 Releases/
 Artifacts/
 *.msix
