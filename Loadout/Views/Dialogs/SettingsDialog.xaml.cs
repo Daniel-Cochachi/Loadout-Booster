@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
@@ -50,6 +51,42 @@ public partial class SettingsDialog : FluentWindow
             });
         }
         catch { }
+    }
+
+    private async void CheckUpdate_Click(object sender, RoutedEventArgs e)
+    {
+        UpdateBtn.IsEnabled = false;
+        UpdateBtn.Content = "⟳ BUSCANDO…";
+        UpdateStatusText.Text = "Buscando actualizaciones en GitHub…";
+        try
+        {
+            if (!UpdateService.IsVelopackInstall)
+            {
+                UpdateStatusText.Text = "⚠ Esta instalación no soporta auto-update. Descarga el Setup.exe desde GitHub.";
+                UpdateBtn.Content = "⟳ BUSCAR ACTUALIZACIONES";
+                UpdateBtn.IsEnabled = true;
+                return;
+            }
+            string? msg = await UpdateService.CheckAndApplyAsync(async question =>
+            {
+                return await Dispatcher.InvokeAsync(() =>
+                    ConfirmDialog.Ask(this, "ACTUALIZACIÓN", question, "REINICIAR", "DESPUÉS"));
+            });
+            if (msg != null)
+                UpdateStatusText.Text = "✅ " + msg;
+            else
+                UpdateStatusText.Text = "✅ Ya tienes la última versión.";
+        }
+        catch (Exception ex)
+        {
+            UpdateStatusText.Text = $"❌ Error: {ex.Message}";
+            Log.Error("CheckUpdate_Click", ex);
+        }
+        finally
+        {
+            UpdateBtn.Content = "⟳ BUSCAR ACTUALIZACIONES";
+            UpdateBtn.IsEnabled = true;
+        }
     }
 
     private void Cancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;
