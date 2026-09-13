@@ -1,0 +1,372 @@
+﻿<Application x:Class="Loadout.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:conv="clr-namespace:Loadout.Converters"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ui:ThemesDictionary Theme="Dark" />
+                <ui:ControlsDictionary />
+                <ResourceDictionary Source="Assets/Logo/LoadoutLogo.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- ===== LOADOUT · CRIMSON NOIR (#02060E + #C50337) ===== -->
+            <SolidColorBrush x:Key="CabBg" Color="#02060E" />
+            <SolidColorBrush x:Key="CabSurface" Color="#B3160F18" />
+            <SolidColorBrush x:Key="CabSurface2" Color="#D01B1220" />
+            <SolidColorBrush x:Key="CabSurface3" Color="#E8201523" />
+            <SolidColorBrush x:Key="CabHairline" Color="#40C50337" />
+            <SolidColorBrush x:Key="CabShadow" Color="#99000000" />
+            <SolidColorBrush x:Key="CabText" Color="#FBF1EB" />
+            <SolidColorBrush x:Key="CabTextDim" Color="#D8C9CE" />
+            <SolidColorBrush x:Key="CabTextMut" Color="#9A8B90" />
+            <SolidColorBrush x:Key="CabGold" Color="#F2A9BC" />
+            <SolidColorBrush x:Key="CabGoldDim" Color="#52C50337" />
+            <SolidColorBrush x:Key="CabCrimson" Color="#C50337" />
+            <SolidColorBrush x:Key="CabCrimsonSoft" Color="#38C50337" />
+            <SolidColorBrush x:Key="CabNoir" Color="#080B13" />
+            <SolidColorBrush x:Key="CabAmber" Color="#E7547A" />
+            <SolidColorBrush x:Key="CabAmberDark" Color="#33C50337" />
+            <SolidColorBrush x:Key="CabOrange" Color="#E01B4B" />
+            <SolidColorBrush x:Key="CabBlue" Color="#C50337" />
+            <SolidColorBrush x:Key="CabPurple" Color="#8E2440" />
+            <SolidColorBrush x:Key="CabLime" Color="#C50337" />
+            <SolidColorBrush x:Key="CabPink" Color="#F2758F" />
+            <SolidColorBrush x:Key="CabActiveBg" Color="#220D15" />
+            <SolidColorBrush x:Key="CabRed" Color="#C50337" />
+            <SolidColorBrush x:Key="CabGreen" Color="#C50337" />
+            <SolidColorBrush x:Key="CabLedOff" Color="#2E1D2032" />
+            <SolidColorBrush x:Key="CabBlueBtn" Color="#C50337" />
+
+            <!-- Fondo atmósfera Crimson Noir: resplandor central que muere en noir -->
+            <RadialGradientBrush x:Key="CabAppGradient" GradientOrigin="0.5,0.42" Center="0.5,0.42" RadiusX="0.9" RadiusY="0.9">
+                <GradientStop Offset="0" Color="#2A0712" />
+                <GradientStop Offset="0.45" Color="#12040B" />
+                <GradientStop Offset="1" Color="#02060E" />
+            </RadialGradientBrush>
+
+            <!-- Glow de borde carmesí -->
+            <SolidColorBrush x:Key="CabGlow" Color="#C50337" />
+
+            <!-- Tipografía SF-like: Segoe UI Variable (Win11) con fallback Segoe UI. Poppins suave para display -->
+            <FontFamily x:Key="PopBlack">/Loadout;component/Assets/Fonts/Poppins-Bold.ttf#Poppins, Segoe UI Variable Display, Segoe UI</FontFamily>
+            <FontFamily x:Key="PopXBold">/Loadout;component/Assets/Fonts/Poppins-SemiBold.ttf#Poppins, Segoe UI Variable Display, Segoe UI</FontFamily>
+            <FontFamily x:Key="PopBold">/Loadout;component/Assets/Fonts/Poppins-SemiBold.ttf#Poppins, Segoe UI Variable Display, Segoe UI</FontFamily>
+            <FontFamily x:Key="PopSemi">/Loadout;component/Assets/Fonts/Poppins-Regular.ttf#Poppins, Segoe UI Variable Text, Segoe UI</FontFamily>
+            <FontFamily x:Key="PopReg">/Loadout;component/Assets/Fonts/Poppins-Regular.ttf#Poppins, Segoe UI Variable Text, Segoe UI</FontFamily>
+            <FontFamily x:Key="CabMono">Segoe UI Variable Text, Segoe UI</FontFamily>
+            <FontFamily x:Key="CabUi">Segoe UI Variable Text, Segoe UI</FontFamily>
+
+            <conv:SlotStateToBrushConverter x:Key="SlotLedConv" />
+            <conv:HexStringToBrushConverter x:Key="HexBrushConv" />
+            <conv:HexToContrastConverter x:Key="HexContrastConv" />
+            <conv:HexToShadeConverter x:Key="HexShadeConv" />
+            <conv:ZeroToVisibilityConverter x:Key="ZeroToVisConv" />
+            <conv:CoverPathToImageConverter x:Key="CoverImgConv" />
+            <conv:NotZeroToVisibilityConverter x:Key="NotZeroVisConv" />
+            <BooleanToVisibilityConverter x:Key="BoolVis" />
+
+            <!-- Scrollbar fino estilo iOS -->
+            <Style TargetType="{x:Type ScrollBar}">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Foreground" Value="{StaticResource CabTextMut}" />
+                <Setter Property="Width" Value="8" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type ScrollBar}">
+                            <Grid Background="Transparent">
+                                <Track x:Name="PART_Track" IsDirectionReversed="True">
+                                    <Track.Thumb>
+                                        <Thumb>
+                                            <Thumb.Template>
+                                                <ControlTemplate TargetType="{x:Type Thumb}">
+                                                    <Border Background="#6E4A55" CornerRadius="4" Margin="2,0" />
+                                                </ControlTemplate>
+                                            </Thumb.Template>
+                                        </Thumb>
+                                    </Track.Thumb>
+                                </Track>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- CheckBox carmesí global -->
+            <Style TargetType="{x:Type CheckBox}">
+                <Setter Property="Foreground" Value="{StaticResource CabText}" />
+                <Setter Property="FontFamily" Value="{StaticResource PopSemi}" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type CheckBox}">
+                            <StackPanel Orientation="Horizontal"
+                                        VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
+                                <Border x:Name="Box" Width="18" Height="18" CornerRadius="5"
+                                        Background="{StaticResource CabSurface2}"
+                                        BorderBrush="{StaticResource CabHairline}" BorderThickness="1">
+                                    <Path x:Name="Check" Data="M4,9.5 L7.5,13 L14,5" Stroke="#FBF1EB"
+                                          StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          Visibility="Collapsed" />
+                                </Border>
+                                <ContentPresenter Margin="8,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Box" Property="Background" Value="{StaticResource CabCrimson}" />
+                                    <Setter TargetName="Box" Property="BorderBrush" Value="#E01B4B" />
+                                    <Setter TargetName="Check" Property="Visibility" Value="Visible" />
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Box" Property="BorderBrush" Value="#E01B4B" />
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.4" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Input iOS oscuro -->
+            <Style TargetType="TextBox">
+                <Setter Property="Background" Value="{StaticResource CabSurface2}" />
+                <Setter Property="Foreground" Value="{StaticResource CabText}" />
+                <Setter Property="CaretBrush" Value="{StaticResource CabBlue}" />
+                <Setter Property="SelectionBrush" Value="{StaticResource CabBlue}" />
+                <Setter Property="BorderBrush" Value="{StaticResource CabHairline}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Padding" Value="10,8" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TextBox">
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="10" SnapsToDevicePixels="True">
+                                <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"
+                                              VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsKeyboardFocused" Value="True">
+                                    <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource CabBlue}" />
+                                    <Setter TargetName="Bd" Property="BorderThickness" Value="2" />
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.4" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Botón CTA: carmesí con glow suave y acotado -->
+            <Style x:Key="ArcadePlayBtn" TargetType="Button">
+                <Setter Property="Background" Value="{StaticResource CabCrimson}" />
+                <Setter Property="Foreground" Value="{StaticResource CabText}" />
+                <Setter Property="FontFamily" Value="{StaticResource PopXBold}" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="16,10" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Grid RenderTransformOrigin="0.5,0.5">
+                                <Grid.RenderTransform><ScaleTransform ScaleX="1" ScaleY="1" /></Grid.RenderTransform>
+                                <Border x:Name="Bg" Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="10" Padding="{TemplateBinding Padding}">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="#C50337" BlurRadius="9" ShadowDepth="1" Opacity="0.45" />
+                                    </Border.Effect>
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Bg" Property="Background" Value="#9E0330" />
+                                    <Setter Property="RenderTransform">
+                                        <Setter.Value><ScaleTransform ScaleX="0.96" ScaleY="0.96" /></Setter.Value>
+                                    </Setter>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bg" Property="Background" Value="#E01B4B" />
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.3" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- CERRAR TODO: ghost carmesí oscuro con hover propio legible -->
+            <Style x:Key="ArcadeStopBtn" TargetType="Button">
+                <Setter Property="Background" Value="#16080C" />
+                <Setter Property="Foreground" Value="{StaticResource CabRed}" />
+                <Setter Property="FontFamily" Value="{StaticResource PopXBold}" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="BorderBrush" Value="{StaticResource CabCrimson}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Padding" Value="16,10" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bg" Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="10" Padding="{TemplateBinding Padding}">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#C50337" BlurRadius="7" ShadowDepth="1" Opacity="0.3" />
+                                </Border.Effect>
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bg" Property="Background" Value="#2A121B" />
+                                    <Setter TargetName="Bg" Property="BorderBrush" Value="#E01B4B" />
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Bg" Property="Background" Value="#3A1620" />
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.3" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Paneles -->
+            <Style x:Key="CabPanel" TargetType="Border">
+                <Setter Property="Background" Value="{StaticResource CabSurface}" />
+                <Setter Property="BorderBrush" Value="{StaticResource CabHairline}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="16" />
+                <Setter Property="Padding" Value="18" />
+                <Setter Property="SnapsToDevicePixels" Value="True" />
+            </Style>
+
+            <Style x:Key="CabPanelTitle" TargetType="TextBlock">
+                <Setter Property="FontFamily" Value="{StaticResource PopBlack}" />
+                <Setter Property="FontSize" Value="19" />
+                <Setter Property="Foreground" Value="{StaticResource CabText}" />
+            </Style>
+
+            <!-- Botón secundario: noir con glow carmesí sutil -->
+            <Style x:Key="ArcadeGhostBtn" TargetType="Button">
+                <Setter Property="Background" Value="{StaticResource CabNoir}" />
+                <Setter Property="Foreground" Value="{StaticResource CabText}" />
+                <Setter Property="FontFamily" Value="{StaticResource PopSemi}" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="11,8" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Root" Background="{TemplateBinding Background}" CornerRadius="10"
+                                    Padding="{TemplateBinding Padding}">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#C50337" BlurRadius="6" ShadowDepth="1" Opacity="0.22" />
+                                </Border.Effect>
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Root" Property="Background" Value="#1C0B11" />
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Root" Property="Background" Value="#260E15" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Botones iOS tintados -->
+            <Style x:Key="ArcadeOutlineBtn" TargetType="Button">
+                <Setter Property="Background" Value="{StaticResource CabSurface2}" />
+                <Setter Property="Foreground" Value="{StaticResource CabText}" />
+                <Setter Property="FontFamily" Value="{StaticResource PopBold}" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="15,9" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bg" Background="{TemplateBinding Background}"
+                                    CornerRadius="10" Padding="{TemplateBinding Padding}"
+                                    RenderTransformOrigin="0.5,0.5">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#C50337" BlurRadius="7" ShadowDepth="1" Opacity="0.3" />
+                                </Border.Effect>
+                                <Border.RenderTransform><ScaleTransform ScaleX="1" ScaleY="1" /></Border.RenderTransform>
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Bg" Property="RenderTransform">
+                                        <Setter.Value><ScaleTransform ScaleX="0.96" ScaleY="0.96" /></Setter.Value>
+                                    </Setter>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.35" />
+                                    <Setter Property="Cursor" Value="Arrow" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style x:Key="ArcadeOutlineYellow" TargetType="Button" BasedOn="{StaticResource ArcadeOutlineBtn}">
+                <Setter Property="Foreground" Value="{StaticResource CabText}" />
+                <Setter Property="Background" Value="{StaticResource CabCrimson}" />
+            </Style>
+            <Style x:Key="ArcadeOutlineRed" TargetType="Button" BasedOn="{StaticResource ArcadeOutlineBtn}">
+                <Setter Property="Foreground" Value="{StaticResource CabRed}" />
+                <Setter Property="Background" Value="#1A070B" />
+            </Style>
+            <Style x:Key="ArcadeOutlineWhite" TargetType="Button" BasedOn="{StaticResource ArcadeOutlineBtn}">
+                <Setter Property="Foreground" Value="{StaticResource CabText}" />
+                <Setter Property="Background" Value="{StaticResource CabNoir}" />
+            </Style>
+
+            <!-- Pastilla de estado -->
+            <Style x:Key="TactPill" TargetType="Border">
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="Padding" Value="13,6" />
+                <Setter Property="Margin" Value="0,0,8,0" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+            </Style>
+            <Style x:Key="TactPillText" TargetType="TextBlock">
+                <Setter Property="FontFamily" Value="{StaticResource PopBold}" />
+                <Setter Property="FontSize" Value="11" />
+            </Style>
+
+            <!-- Checkbox pop -->
+            <Style x:Key="TactCheck" TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
+                <Setter Property="Foreground" Value="{StaticResource CabText}" />
+                <Setter Property="FontFamily" Value="{StaticResource PopSemi}" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Margin" Value="0,0,26,0" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

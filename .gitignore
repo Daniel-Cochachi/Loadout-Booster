@@ -1,0 +1,14 @@
+bin/
+obj/
+.vs/
+*.user
+publish-exe/
+publish/
+Releases/
+Artifacts/
+*.msix
+*.msixsym
+*.appxsym
+TestResults/
+*.db
+covers/

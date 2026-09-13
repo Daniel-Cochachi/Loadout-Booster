@@ -1,0 +1,168 @@
+<ui:FluentWindow x:Class="Loadout.Views.Dialogs.LoadoutDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="LOADOUT · Nuevo perfil" Height="950" Width="560"
+    WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+    ExtendsContentIntoTitleBar="True" WindowBackdropType="None"
+    Background="{StaticResource CabBg}" Foreground="{StaticResource CabText}"
+    FontFamily="{StaticResource CabUi}">
+    <Border Background="{StaticResource CabSurface}" BorderBrush="{StaticResource CabHairline}" BorderThickness="1" CornerRadius="16" Margin="14">
+        <Grid Margin="20,48,20,16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+<RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Margin="0,0,0,8">
+                <TextBlock x:Name="HeaderTitle" Text="NUEVO PERFIL" FontFamily="{StaticResource PopBlack}" FontSize="20" Foreground="{StaticResource CabText}" />
+                <TextBlock Text="Dale nombre e identidad al perfil" FontFamily="{StaticResource CabMono}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource CabTextMut}" Margin="0,3,0,0" />
+            </StackPanel>
+
+            <TextBlock Grid.Row="1" Text="NOMBRE DEL PERFIL" FontFamily="{StaticResource CabMono}" FontSize="11"
+                FontWeight="Bold" Foreground="{StaticResource CabTextMut}" />
+            <TextBox x:Name="NameBox" Grid.Row="2" Margin="0,8,0,0" Padding="10,8"
+                FontSize="15" FontWeight="SemiBold" MaxLength="60"
+                Background="{StaticResource CabSurface}" Foreground="{StaticResource CabText}"
+                BorderBrush="{StaticResource CabHairline}" BorderThickness="1" />
+            <TextBlock Grid.Row="3" Text="ETIQUETA · TARGET GATE (ej. EUW HIGH-PRIO)" FontFamily="{StaticResource CabMono}"
+                FontSize="11" FontWeight="Bold" Foreground="{StaticResource CabTextMut}" Margin="0,14,0,0" />
+            <TextBox x:Name="TagBox" Grid.Row="4" Margin="0,8,0,0" Padding="10,8"
+                FontSize="13" FontFamily="{StaticResource CabMono}" MaxLength="30"
+                Background="{StaticResource CabSurface}" Foreground="{StaticResource CabAmber}"
+                BorderBrush="{StaticResource CabHairline}" BorderThickness="1" />
+            <TextBlock Grid.Row="5" Text="NOTAS · SÓLO VISIBLE EN ESTE PERFIL" FontFamily="{StaticResource CabMono}"
+                FontSize="11" FontWeight="Bold" Foreground="{StaticResource CabTextMut}" Margin="0,14,0,0" />
+            <TextBox x:Name="NotesBox" Grid.Row="6" Margin="0,8,0,0" Padding="10,8" MinHeight="30" MaxHeight="42"
+                AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                FontSize="12" FontFamily="{StaticResource CabMono}" MaxLength="400"
+                Background="{StaticResource CabSurface}" Foreground="{StaticResource CabText}"
+                BorderBrush="{StaticResource CabHairline}" BorderThickness="1" />
+            <TextBlock Grid.Row="7" Text="COLOR · PALETA (12)" FontFamily="{StaticResource CabMono}"
+                FontSize="11" FontWeight="Bold" Foreground="{StaticResource CabTextMut}" Margin="0,14,0,0" />
+            <ListBox x:Name="ColorList" Grid.Row="8" Margin="0,8,0,0"
+                     Background="Transparent" BorderThickness="0"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     SelectionChanged="ColorList_Changed">
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Margin" Value="0,0,10,10" />
+                        <Setter Property="Cursor" Value="Hand" />
+                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                        <Setter Property="VerticalContentAlignment" Value="Center" />
+                        <Setter Property="Background" Value="Transparent" />
+                        <Setter Property="BorderThickness" Value="0" />
+                        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <Border x:Name="Bg" Width="56" Height="40" CornerRadius="2"
+                                            Background="{Binding}" BorderBrush="Transparent" BorderThickness="2" />
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="Bg" Property="BorderBrush" Value="{StaticResource CabGreen}" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+            </ListBox>
+            <StackPanel Grid.Row="9" Margin="0,14,0,0">
+                <TextBlock Text="COMBINACIÓN · 2 COLORES (TOCA PARA EDITAR)" FontFamily="{StaticResource CabMono}"
+                    FontSize="11" FontWeight="Bold" Foreground="{StaticResource CabTextMut}" />
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0" VerticalAlignment="Center">
+                    <Button x:Name="Swatch1" Content="1 · BASE" Width="150" Padding="10,10" FontSize="13"
+                            FontFamily="{StaticResource PopBold}" Click="Swatch_Click" Tag="0" />
+                    <TextBlock Text="+" FontFamily="{StaticResource PopBlack}" FontSize="16"
+                        Foreground="{StaticResource CabTextMut}" VerticalAlignment="Center" Margin="10,0" />
+                    <Button x:Name="Swatch2" Content="2 · COMBINA" Width="150" Padding="10,10" FontSize="13"
+                            FontFamily="{StaticResource PopBold}" Click="Swatch_Click" Tag="1" />
+                </StackPanel>
+            </StackPanel>
+            <StackPanel Grid.Row="10" Margin="0,14,0,0">
+                <TextBlock Text="CÓDIGO HEX · PERSONALIZADO" FontFamily="{StaticResource CabMono}"
+                    FontSize="11" FontWeight="Bold" Foreground="{StaticResource CabTextMut}" />
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0" VerticalAlignment="Center">
+                    <Border x:Name="HexPreview" Width="40" Height="40" CornerRadius="10"
+                            Background="{StaticResource CabCrimson}"
+                            BorderBrush="{StaticResource CabHairline}" BorderThickness="1" />
+                    <TextBox x:Name="HexBox" Margin="10,0,0,0" Padding="10,8" Width="150"
+                        FontSize="13" FontFamily="{StaticResource CabMono}" MaxLength="7" VerticalAlignment="Center"
+                        Background="{StaticResource CabSurface}" Foreground="{StaticResource CabAmber}"
+                        BorderBrush="{StaticResource CabHairline}" BorderThickness="1"
+                        TextChanged="HexBox_Changed" />
+                    <TextBlock Text="#RRGGBB" FontFamily="{StaticResource CabMono}" FontSize="10"
+                        Foreground="{StaticResource CabTextMut}" VerticalAlignment="Center" Margin="10,0,0,0" />
+                </StackPanel>
+            </StackPanel>
+            <StackPanel Grid.Row="11" Margin="0,12,0,0">
+                <TextBlock Text="R·G·B · ESCRIBE 0–255" FontFamily="{StaticResource CabMono}"
+                    FontSize="11" FontWeight="Bold" Foreground="{StaticResource CabTextMut}" />
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="R" FontFamily="{StaticResource CabMono}" FontSize="12" FontWeight="Bold"
+                        Foreground="#FF4D6E" VerticalAlignment="Center" />
+                    <TextBox x:Name="RBox" Margin="6,0,0,0" Padding="8,6" Width="56" MaxLength="3"
+                        FontSize="13" FontFamily="{StaticResource CabMono}" HorizontalContentAlignment="Center"
+                        Background="{StaticResource CabSurface}" Foreground="{StaticResource CabText}"
+                        BorderBrush="{StaticResource CabHairline}" BorderThickness="1"
+                        TextChanged="RgbBox_Changed" />
+                    <TextBlock Text="G" FontFamily="{StaticResource CabMono}" FontSize="12" FontWeight="Bold"
+                        Foreground="#E8A2B2" VerticalAlignment="Center" Margin="12,0,0,0" />
+                    <TextBox x:Name="GBox" Margin="6,0,0,0" Padding="8,6" Width="56" MaxLength="3"
+                        FontSize="13" FontFamily="{StaticResource CabMono}" HorizontalContentAlignment="Center"
+                        Background="{StaticResource CabSurface}" Foreground="{StaticResource CabText}"
+                        BorderBrush="{StaticResource CabHairline}" BorderThickness="1"
+                        TextChanged="RgbBox_Changed" />
+                    <TextBlock Text="B" FontFamily="{StaticResource CabMono}" FontSize="12" FontWeight="Bold"
+                        Foreground="#F2A9BC" VerticalAlignment="Center" Margin="12,0,0,0" />
+                    <TextBox x:Name="BBox" Margin="6,0,0,0" Padding="8,6" Width="56" MaxLength="3"
+                        FontSize="13" FontFamily="{StaticResource CabMono}" HorizontalContentAlignment="Center"
+                        Background="{StaticResource CabSurface}" Foreground="{StaticResource CabText}"
+                        BorderBrush="{StaticResource CabHairline}" BorderThickness="1"
+                        TextChanged="RgbBox_Changed" />
+                </StackPanel>
+            </StackPanel>
+            <StackPanel Grid.Row="12" Margin="0,14,0,0">
+                <TextBlock Text="PORTADA 3D · IMAGEN (OPCIONAL)" FontFamily="{StaticResource CabMono}"
+                    FontSize="11" FontWeight="Bold" Foreground="{StaticResource CabTextMut}" />
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0" VerticalAlignment="Center">
+                    <Border Width="56" Height="56" CornerRadius="12" Background="{StaticResource CabSurface2}"
+                            BorderBrush="{StaticResource CabHairline}" BorderThickness="1" ClipToBounds="True">
+                        <Grid>
+                            <TextBlock x:Name="CoverPlaceholder" Text="?" FontFamily="{StaticResource PopBlack}" FontSize="20"
+                                       Foreground="{StaticResource CabTextMut}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <Image x:Name="CoverPreview" Stretch="UniformToFill" />
+                        </Grid>
+                    </Border>
+                    <Button Content="ELEGIR…" Style="{StaticResource ArcadeGhostBtn}" Padding="13,7" FontSize="12"
+                            Margin="10,0,0,0" VerticalAlignment="Center" Click="ChooseCover_Click" />
+                    <Button x:Name="ClearCoverBtn" Content="QUITAR" Style="{StaticResource ArcadeGhostBtn}" Padding="13,7" FontSize="12"
+                            Margin="8,0,0,0" VerticalAlignment="Center" Click="ClearCover_Click" />
+                </StackPanel>
+            </StackPanel>
+            <StackPanel Grid.Row="13" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+                <Button Content="CANCELAR" Style="{StaticResource ArcadeGhostBtn}" Padding="13,7" FontSize="13" Click="Cancel_Click" />
+                <Button Content="■ GUARDAR" Style="{StaticResource ArcadePlayBtn}" FontSize="13"
+                        Padding="15,8" Margin="8,0,0,0" Click="Save_Click" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</ui:FluentWindow>

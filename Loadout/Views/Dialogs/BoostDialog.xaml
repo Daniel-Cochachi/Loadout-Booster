@@ -1,0 +1,150 @@
+<ui:FluentWindow x:Class="Loadout.Views.Dialogs.BoostDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="LOADOUT · Game Boost" Height="860" Width="580"
+    WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+    ExtendsContentIntoTitleBar="True" WindowBackdropType="None"
+    Background="{StaticResource CabBg}" Foreground="{StaticResource CabText}"
+    FontFamily="{StaticResource CabUi}">
+    <Border Background="{StaticResource CabSurface}" BorderBrush="{StaticResource CabHairline}" BorderThickness="1" CornerRadius="16" Margin="14">
+        <Grid Margin="20,48,20,16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Margin="0,0,0,8">
+                <TextBlock Text="⚡ GAME BOOST" FontFamily="{StaticResource PopBlack}" FontSize="20" Foreground="{StaticResource CabText}" />
+                <TextBlock Text="Libera RAM y cierra tragalonas antes de jugar" FontFamily="{StaticResource CabMono}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource CabTextMut}" Margin="0,3,0,0" />
+            </StackPanel>
+
+            <TextBlock x:Name="RamText" Grid.Row="1" Text="RAM: —" FontFamily="{StaticResource PopBlack}" FontSize="16"
+                Foreground="{StaticResource CabText}" />
+            <ProgressBar x:Name="RamBar" Grid.Row="2" Margin="0,8,0,0" Height="14" Minimum="0" Maximum="100" Value="0"
+                         Background="Transparent" BorderThickness="0">
+                <ProgressBar.Template>
+                    <ControlTemplate TargetType="ProgressBar">
+                        <Border x:Name="PART_Track" Background="#1A0E14" CornerRadius="7" Padding="2">
+                            <Border x:Name="PART_Indicator" Background="{StaticResource CabCrimson}" CornerRadius="5"
+                                    HorizontalAlignment="Left" />
+                        </Border>
+                    </ControlTemplate>
+                </ProgressBar.Template>
+            </ProgressBar>
+            <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,10,0,0">
+                <Button Content="⚡ LIBERAR RAM" Style="{StaticResource ArcadePlayBtn}" FontSize="12"
+                        Padding="13,7" Click="Trim_Click" />
+                <Button Content="🧹 TEMPORALES" Style="{StaticResource ArcadeGhostBtn}" FontSize="12"
+                        Padding="13,7" Margin="8,0,0,0" Click="Clean_Click" />
+                <Button Content="↻" Style="{StaticResource ArcadeGhostBtn}" FontSize="12"
+                        Padding="13,7" Margin="8,0,0,0" Click="Refresh_Click" ToolTip="Actualizar" />
+            </StackPanel>
+
+            <TextBlock Grid.Row="4" Text="TRAGALONAS · +80 MB (NUNCA SISTEMA NI TU SESIÓN)" FontFamily="{StaticResource CabMono}"
+                FontSize="11" FontWeight="Bold" Foreground="{StaticResource CabTextMut}" Margin="0,14,0,0" />
+            <ListBox x:Name="HogList" Grid.Row="5" Margin="0,8,0,0" Height="138"
+                     Background="Transparent" BorderBrush="{StaticResource CabHairline}" BorderThickness="1"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Padding" Value="0" />
+                        <Setter Property="Margin" Value="0" />
+                        <Setter Property="Background" Value="Transparent" />
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        <Setter Property="VerticalContentAlignment" Value="Center" />
+                        <Setter Property="BorderThickness" Value="0" />
+                        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <Border Background="Transparent" Padding="10,7"
+                                            BorderBrush="{StaticResource CabHairline}" BorderThickness="0,0,0,1">
+                                        <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}"
+                                                  Foreground="{StaticResource CabText}"
+                                                  VerticalContentAlignment="Center"
+                                                  Content="{Binding Display}" FontSize="13" />
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+            </ListBox>
+
+            <StackPanel Grid.Row="6" Orientation="Horizontal" Margin="0,10,0,0">
+                <Button Content="✕ CERRAR SELECCIONADOS" Style="{StaticResource ArcadePlayBtn}" FontSize="12"
+                        Padding="13,7" Click="Kill_Click" />
+                <TextBlock x:Name="ResultText" FontFamily="{StaticResource CabMono}" FontSize="11" FontWeight="Bold"
+                    Foreground="{StaticResource CabAmber}" VerticalAlignment="Center" Margin="12,0,0,0" Text="" TextWrapping="Wrap" />
+            </StackPanel>
+
+            <TextBlock x:Name="KillListLabel" Grid.Row="7" Text="CIERRE AUTO DEL PERFIL" FontFamily="{StaticResource CabMono}"
+                FontSize="11" FontWeight="Bold" Foreground="{StaticResource CabTextMut}" Margin="0,14,0,0" />
+            <Grid Grid.Row="8" Margin="0,8,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="KillBox" Padding="10,7" FontSize="13" FontFamily="{StaticResource CabMono}"
+                    Background="{StaticResource CabSurface}" Foreground="{StaticResource CabText}"
+                    BorderBrush="{StaticResource CabHairline}" BorderThickness="1" MaxLength="40" />
+                <Button Grid.Column="1" Content="+ AGREGAR" Style="{StaticResource ArcadeGhostBtn}" FontSize="12"
+                        Padding="12,6" Margin="8,0,0,0" Click="KillAdd_Click" />
+                <Button Grid.Column="2" Content="QUITAR" Style="{StaticResource ArcadeGhostBtn}" FontSize="12"
+                        Padding="12,6" Margin="6,0,0,0" Click="KillRemove_Click" />
+            </Grid>
+            <ListBox x:Name="KillListBox" Grid.Row="9" Margin="0,8,0,0" Height="76"
+                     Background="Transparent" BorderBrush="{StaticResource CabHairline}" BorderThickness="1"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
+
+            <StackPanel Grid.Row="10" Margin="0,12,0,0">
+                <CheckBox x:Name="AutoBoostBox" Content="Boost automático antes de JUGAR (libera RAM)" Margin="0,0,0,8"
+                    Foreground="{StaticResource CabText}" FontSize="13" Checked="AutoBoost_Changed" Unchecked="AutoBoost_Changed" />
+                <CheckBox x:Name="PerfPowerBox" Content="Máximo rendimiento de energía al jugar (se restaura al cerrar)" Margin="0,0,0,8"
+                    Foreground="{StaticResource CabText}" FontSize="13" Checked="PerfPower_Changed" Unchecked="PerfPower_Changed" />
+                <CheckBox x:Name="GameDvrBox" Content="Desactivar Game DVR / grabación en segundo plano (+FPS)" Margin="0,0,0,0"
+                    Foreground="{StaticResource CabText}" FontSize="13" Checked="GameDvr_Changed" Unchecked="GameDvr_Changed" />
+            </StackPanel>
+
+            <StackPanel Grid.Row="11" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+                <Button Content="■ CERRAR" Style="{StaticResource ArcadePlayBtn}" FontSize="13"
+                        Padding="15,8" Click="Close_Click" />
+            </StackPanel>
+
+            <!-- Overlay de carga -->
+            <Border x:Name="LoadingOverlay" Grid.RowSpan="12" Background="#E602060E" CornerRadius="12"
+                    Panel.ZIndex="50" Visibility="Visible">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock Text="⚡" FontSize="44" Foreground="{StaticResource CabCrimson}"
+                               HorizontalAlignment="Center">
+                        <TextBlock.Triggers>
+                            <EventTrigger RoutedEvent="Loaded">
+                                <BeginStoryboard>
+                                    <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                         From="1" To="0.2" Duration="0:0:0.45" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                        </TextBlock.Triggers>
+                    </TextBlock>
+                    <TextBlock Text="CARGANDO BOOST…" FontFamily="{StaticResource CabMono}" FontSize="12" FontWeight="Bold"
+                        Foreground="{StaticResource CabTextDim}" Margin="0,12,0,0" HorizontalAlignment="Center" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</ui:FluentWindow>

@@ -1,0 +1,99 @@
+<ui:FluentWindow x:Class="Loadout.Views.Dialogs.ItemDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="LOADOUT · Nuevo acceso" Height="580" Width="520"
+    WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+    ExtendsContentIntoTitleBar="True" WindowBackdropType="None"
+    Background="{StaticResource CabBg}" Foreground="{StaticResource CabText}"
+    FontFamily="{StaticResource CabUi}">
+    <Border Background="{StaticResource CabSurface}" BorderBrush="{StaticResource CabHairline}" BorderThickness="1" CornerRadius="16" Margin="14">
+        <Grid Margin="20,48,20,16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                <TextBlock Text="NUEVO ACCESO" FontFamily="{StaticResource PopBlack}" FontSize="20" Foreground="{StaticResource CabText}" />
+                <TextBlock Text="Define qué lanzar y con qué retraso" FontFamily="{StaticResource CabMono}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource CabTextMut}" Margin="0,3,0,0" />
+            </StackPanel>
+
+            <TextBlock Grid.Row="1" Text="NOMBRE DEL ACCESO" FontFamily="{StaticResource CabMono}" FontSize="11" FontWeight="Bold"
+                Foreground="{StaticResource CabTextMut}" />
+            <TextBox x:Name="NameBox" Grid.Row="2" Margin="0,6,0,0" Padding="10,8" FontSize="14"
+                Background="{StaticResource CabSurface}" Foreground="{StaticResource CabText}"
+                BorderBrush="{StaticResource CabHairline}" BorderThickness="1" MaxLength="80" />
+
+            <TextBlock Grid.Row="3" Text="TIPO" FontFamily="{StaticResource CabMono}" FontSize="11"
+                FontWeight="Bold" Foreground="{StaticResource CabTextMut}" Margin="0,12,0,0" />
+            <ComboBox x:Name="KindBox" Grid.Row="4" Margin="0,6,0,0" Padding="8,6" FontSize="14"
+                Background="{StaticResource CabSurface}" Foreground="{StaticResource CabText}"
+                BorderBrush="{StaticResource CabHairline}"
+                SelectionChanged="KindBox_Changed">
+                <ComboBoxItem Content="Exe" Tag="Exe" />
+                <ComboBoxItem Content="Url" Tag="Url" />
+                <ComboBoxItem Content="Steam (ID)" Tag="Steam" />
+                <ComboBoxItem Content="Folder" Tag="Folder" />
+                <ComboBoxItem Content="File" Tag="File" />
+            </ComboBox>
+
+            <TextBlock Grid.Row="5" x:Name="TargetLabel" Text="RUTA .EXE" FontFamily="{StaticResource CabMono}"
+                FontSize="11" FontWeight="Bold" Foreground="{StaticResource CabTextMut}" Margin="0,12,0,0" />
+            <Grid Grid.Row="6" Margin="0,6,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="TargetBox" Padding="10,8" FontSize="13" FontFamily="{StaticResource CabMono}"
+                    Background="{StaticResource CabSurface}" Foreground="{StaticResource CabText}"
+                    BorderBrush="{StaticResource CabHairline}" BorderThickness="1" />
+                <Button x:Name="BrowseBtn" Grid.Column="1" Content="···" Margin="8,0,0,0" Padding="14,6"
+                    Style="{StaticResource ArcadeGhostBtn}" Click="Browse_Click" />
+            </Grid>
+
+            <Grid Grid.Row="7" Margin="0,12,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="120" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="ARGUMENTOS (OPCIONAL)" FontFamily="{StaticResource CabMono}" FontSize="11"
+                        FontWeight="Bold" Foreground="{StaticResource CabTextMut}" />
+                    <TextBox x:Name="ArgsBox" Margin="0,6,8,0" Padding="10,8" FontSize="12"
+                        FontFamily="{StaticResource CabMono}"
+                        Background="{StaticResource CabSurface}" Foreground="{StaticResource CabText}"
+                        BorderBrush="{StaticResource CabHairline}" BorderThickness="1" />
+                </StackPanel>
+                <StackPanel Grid.Column="1">
+                    <TextBlock Text="DELAY · SEGUNDOS" FontFamily="{StaticResource CabMono}" FontSize="11"
+                        FontWeight="Bold" Foreground="{StaticResource CabTextMut}" />
+                    <TextBox x:Name="DelayBox" Margin="0,6,0,0" Padding="10,8" FontSize="14"
+                        FontFamily="{StaticResource CabMono}"
+                        Background="{StaticResource CabSurface}" Foreground="{StaticResource CabText}"
+                        BorderBrush="{StaticResource CabHairline}" BorderThickness="1" Text="2" />
+                </StackPanel>
+            </Grid>
+
+            <StackPanel Grid.Row="8" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,12,0,0">
+                <CheckBox x:Name="PriorityBox" Content="⚡ PRIORITARIO (CPU HIGH)" FontFamily="{StaticResource CabMono}"
+                    FontSize="11" FontWeight="Bold" Foreground="{StaticResource CabAmber}"
+                    ToolTip="Solo este acceso recibirá CPU High-Priority (incluye hijos como League of Legends.exe). Si ninguno está marcado, se priorizan todos." />
+            </StackPanel>
+
+            <StackPanel Grid.Row="9" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                <Button Content="CANCELAR" Style="{StaticResource ArcadeGhostBtn}" Padding="13,7" FontSize="13" Click="Cancel_Click" />
+                <Button Content="■ GUARDAR" Style="{StaticResource ArcadePlayBtn}" FontSize="13"
+                        Padding="15,8" Margin="8,0,0,0" Click="Save_Click" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</ui:FluentWindow>

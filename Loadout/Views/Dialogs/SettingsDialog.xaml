@@ -1,0 +1,55 @@
+<ui:FluentWindow x:Class="Loadout.Views.Dialogs.SettingsDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="LOADOUT · Ajustes" Height="700" Width="480"
+    WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+    ExtendsContentIntoTitleBar="True" WindowBackdropType="None"
+    Background="{StaticResource CabBg}" Foreground="{StaticResource CabText}"
+    FontFamily="{StaticResource CabUi}">
+    <Border Background="{StaticResource CabSurface}" BorderBrush="{StaticResource CabHairline}" BorderThickness="1" CornerRadius="16" Margin="14">
+        <ScrollViewer Margin="20,48,20,16" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="0,0,8,0">
+            <StackPanel Margin="0,0,0,12">
+                <TextBlock Text="AJUSTES" FontFamily="{StaticResource PopBlack}" FontSize="20" Foreground="{StaticResource CabText}" />
+                <TextBlock Text="Organiza el flujo del lanzador" FontFamily="{StaticResource CabMono}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource CabTextMut}" Margin="0,3,0,0" />
+            </StackPanel>
+
+            <TextBlock Text="MODO RANKED" FontFamily="{StaticResource CabMono}" FontSize="11"
+                FontWeight="Bold" Foreground="{StaticResource CabAmber}" />
+            <CheckBox x:Name="DndBox" Content="No Molestar al jugar en Ranked" Margin="0,8,0,0"
+                Foreground="{StaticResource CabText}" FontSize="14" />
+
+            <TextBlock Text="SISTEMA" FontFamily="{StaticResource CabMono}" FontSize="11"
+                FontWeight="Bold" Foreground="{StaticResource CabAmber}" Margin="0,18,0,0" />
+            <CheckBox x:Name="AutoBox" Content="Iniciar con Windows" Margin="0,8,0,0"
+                Foreground="{StaticResource CabText}" FontSize="14" />
+            <CheckBox x:Name="TrayBox" Content="La X minimiza a la bandeja (sigue en 2.º plano)" Margin="0,8,0,0"
+                Foreground="{StaticResource CabText}" FontSize="14" />
+            <CheckBox x:Name="HotBox" Content="Hotkey global Ctrl+Alt+L (abrir ventana)" Margin="0,8,0,0"
+                Foreground="{StaticResource CabText}" FontSize="14" />
+
+            <TextBlock Text="BASE DE DATOS" FontFamily="{StaticResource CabMono}" FontSize="11"
+                FontWeight="Bold" Foreground="{StaticResource CabAmber}" Margin="0,18,0,0" />
+            <TextBlock x:Name="DbPathText" FontFamily="{StaticResource CabMono}" FontSize="10"
+                Foreground="{StaticResource CabTextMut}" TextWrapping="Wrap" Margin="0,8,0,0" />
+            <Button Content="ABRIR CARPETA" Style="{StaticResource ArcadeGhostBtn}"
+                    HorizontalAlignment="Left" Margin="0,8,0,0" Padding="10,5"
+                    Click="OpenDbFolder_Click" />
+
+            <TextBlock Text="INFORMACIÓN" FontFamily="{StaticResource CabMono}" FontSize="11"
+                FontWeight="Bold" Foreground="{StaticResource CabAmber}" Margin="0,18,0,0" />
+            <TextBlock x:Name="VersionText" FontFamily="{StaticResource CabMono}" FontSize="11" FontWeight="Bold"
+                Foreground="{StaticResource CabTextDim}" Margin="0,8,0,0" Text="v—" />
+            <TextBlock Text="Las actualizaciones se instalan automáticamente desde Microsoft Store."
+                FontFamily="{StaticResource CabMono}" FontSize="10" Foreground="{StaticResource CabTextMut}" Margin="0,4,0,0" />
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+                <Button Content="CANCELAR" Style="{StaticResource ArcadeGhostBtn}" Padding="13,7" FontSize="13" Click="Cancel_Click" />
+                <Button Content="■ GUARDAR" Style="{StaticResource ArcadePlayBtn}" FontSize="13"
+                        Padding="15,8" Margin="8,0,0,0" Click="Save_Click" />
+            </StackPanel>
+        </StackPanel>
+        </ScrollViewer>
+    </Border>
+</ui:FluentWindow>

@@ -1,0 +1,81 @@
+<ui:FluentWindow x:Class="Loadout.Views.Dialogs.RunningDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="LOADOUT · En ejecución" Height="600" Width="620"
+    WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+    ExtendsContentIntoTitleBar="True" WindowBackdropType="None"
+    Background="{StaticResource CabBg}" Foreground="{StaticResource CabText}"
+    FontFamily="{StaticResource CabUi}">
+    <Border Background="{StaticResource CabSurface}" BorderBrush="{StaticResource CabHairline}" BorderThickness="1" CornerRadius="16" Margin="14">
+        <Grid Margin="20,48,20,16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Margin="0,0,0,8">
+                <TextBlock Text="▶ EN EJECUCIÓN" FontFamily="{StaticResource PopBlack}" FontSize="20" Foreground="{StaticResource CabText}" />
+                <TextBlock Text="Marca tus juegos abiertos y agrégalos con 1 clic" FontFamily="{StaticResource CabMono}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource CabTextMut}" Margin="0,3,0,0" />
+            </StackPanel>
+
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,0">
+                <Button Content="↻ ACTUALIZAR" Style="{StaticResource ArcadeGhostBtn}" FontSize="12"
+                        Padding="12,6" Click="Refresh_Click" />
+                <Button Content="MARCAR TODOS" Style="{StaticResource ArcadeGhostBtn}" FontSize="12"
+                        Padding="12,6" Margin="8,0,0,0" Click="SelectAll_Click" />
+            </StackPanel>
+
+            <ListBox x:Name="ProcList" Grid.Row="2" Margin="0,10,0,0"
+                     Background="Transparent" BorderBrush="{StaticResource CabHairline}" BorderThickness="1"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Padding" Value="0" />
+                        <Setter Property="Margin" Value="0" />
+                        <Setter Property="Background" Value="Transparent" />
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        <Setter Property="VerticalContentAlignment" Value="Center" />
+                        <Setter Property="BorderThickness" Value="0" />
+                        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <Border Background="Transparent" Padding="10,7"
+                                            BorderBrush="{StaticResource CabHairline}" BorderThickness="0,0,0,1">
+                                        <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}"
+                                                  Foreground="{StaticResource CabText}"
+                                                  VerticalContentAlignment="Center">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"
+                                                    Foreground="{StaticResource CabText}" />
+                                                <TextBlock Text="{Binding Path}" FontFamily="{StaticResource CabMono}" FontSize="10"
+                                                    Foreground="{StaticResource CabTextMut}" TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                        </CheckBox>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+            </ListBox>
+
+            <Grid Grid.Row="3" Margin="0,12,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="CountText" FontFamily="{StaticResource CabMono}" FontSize="11"
+                    Foreground="{StaticResource CabTextMut}" VerticalAlignment="Center" Text="0 MARCADOS" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="CANCELAR" Style="{StaticResource ArcadeGhostBtn}" Padding="13,7" FontSize="13" Click="Cancel_Click" />
+                    <Button Content="＋ AGREGAR" Style="{StaticResource ArcadePlayBtn}" FontSize="13"
+                            Padding="15,8" Margin="8,0,0,0" Click="Add_Click" />
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Border>
+</ui:FluentWindow>

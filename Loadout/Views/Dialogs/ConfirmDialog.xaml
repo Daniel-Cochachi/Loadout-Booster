@@ -1,0 +1,40 @@
+<ui:FluentWindow x:Class="Loadout.Views.Dialogs.ConfirmDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="LOADOUT" Height="270" Width="480"
+    WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+    ExtendsContentIntoTitleBar="True" WindowBackdropType="None"
+    Background="{StaticResource CabBg}" Foreground="{StaticResource CabText}"
+    FontFamily="{StaticResource CabUi}">
+    <Border Background="{StaticResource CabSurface}" BorderBrush="{StaticResource CabHairline}" BorderThickness="1" CornerRadius="16" Margin="14">
+        <Grid Margin="20,46,20,16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Border x:Name="IconTile" Width="40" Height="40" CornerRadius="12"
+                        Background="{StaticResource CabCrimson}" VerticalAlignment="Center">
+                    <Border.Effect>
+                        <DropShadowEffect Color="#C50337" BlurRadius="12" ShadowDepth="2" Opacity="0.55" />
+                    </Border.Effect>
+                    <TextBlock x:Name="IconGlyph" Text="⚠" FontSize="20" Foreground="{StaticResource CabText}"
+                        HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <TextBlock x:Name="TitleText" Text="AVISO" FontFamily="{StaticResource PopBlack}" FontSize="18"
+                    Foreground="{StaticResource CabText}" VerticalAlignment="Center" Margin="12,0,0,0" />
+            </StackPanel>
+            <TextBlock x:Name="MessageText" Grid.Row="1" Text="" FontSize="13.5"
+                Foreground="{StaticResource CabTextDim}" TextWrapping="Wrap"
+                VerticalAlignment="Center" Margin="0,10,0,10" />
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="SecondaryBtn" Content="CANCELAR" Style="{StaticResource ArcadeGhostBtn}"
+                        Padding="13,7" FontSize="13" Click="Secondary_Click" />
+                <Button x:Name="PrimaryBtn" Content="ACEPTAR" Style="{StaticResource ArcadePlayBtn}" FontSize="13"
+                        Padding="15,8" Margin="8,0,0,0" Click="Primary_Click" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</ui:FluentWindow>

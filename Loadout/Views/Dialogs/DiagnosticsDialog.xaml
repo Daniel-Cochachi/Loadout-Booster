@@ -1,0 +1,91 @@
+<ui:FluentWindow x:Class="Loadout.Views.Dialogs.DiagnosticsDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="LOADOUT · Ayuda y diagnósticos" Height="660" Width="520"
+    WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+    ExtendsContentIntoTitleBar="True" WindowBackdropType="None"
+    Background="{StaticResource CabBg}" Foreground="{StaticResource CabText}"
+    FontFamily="{StaticResource CabUi}">
+    <Border Background="{StaticResource CabSurface}" BorderBrush="{StaticResource CabHairline}" BorderThickness="1" CornerRadius="16" Margin="14">
+        <Grid Margin="20,48,20,16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                <TextBlock Text="AYUDA Y ESTADO" FontFamily="{StaticResource PopBlack}" FontSize="20" Foreground="{StaticResource CabText}" />
+                <TextBlock Text="Guía rápida + estado del sistema" FontFamily="{StaticResource CabMono}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource CabTextMut}" Margin="0,3,0,0" />
+            </StackPanel>
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="0,0,8,0">
+            <TextBlock Text="SUBSYSTEM STATUS" FontFamily="{StaticResource CabMono}" FontSize="11"
+                FontWeight="Bold" Foreground="{StaticResource CabAmber}" />
+            <Grid Margin="0,12,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Border Background="{StaticResource CabSurface}" BorderBrush="{StaticResource CabHairline}"
+                        BorderThickness="1" CornerRadius="2" Padding="14,10" Margin="0,0,6,6">
+                    <StackPanel>
+                        <TextBlock Text="PERFILES" FontFamily="{StaticResource CabMono}" FontSize="10" Foreground="{StaticResource CabTextMut}" />
+                        <TextBlock x:Name="LoadoutsCount" Text="0" FontFamily="{StaticResource CabMono}" FontSize="20" FontWeight="Bold" Foreground="{StaticResource CabText}" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="1" Background="{StaticResource CabSurface}" BorderBrush="{StaticResource CabHairline}"
+                        BorderThickness="1" CornerRadius="2" Padding="14,10" Margin="6,0,0,6">
+                    <StackPanel>
+                        <TextBlock Text="SLOTS" FontFamily="{StaticResource CabMono}" FontSize="10" Foreground="{StaticResource CabTextMut}" />
+                        <TextBlock x:Name="SlotsCount" Text="0" FontFamily="{StaticResource CabMono}" FontSize="20" FontWeight="Bold" Foreground="{StaticResource CabText}" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Row="1" Background="{StaticResource CabSurface}" BorderBrush="{StaticResource CabHairline}"
+                        BorderThickness="1" CornerRadius="2" Padding="14,10" Margin="0,0,6,0">
+                    <StackPanel>
+                        <TextBlock Text="SESIONES" FontFamily="{StaticResource CabMono}" FontSize="10" Foreground="{StaticResource CabTextMut}" />
+                        <TextBlock x:Name="SessionsCount" Text="0" FontFamily="{StaticResource CabMono}" FontSize="20" FontWeight="Bold" Foreground="{StaticResource CabGreen}" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Row="1" Grid.Column="1" Background="{StaticResource CabSurface}" BorderBrush="{StaticResource CabHairline}"
+                        BorderThickness="1" CornerRadius="2" Padding="14,10" Margin="6,0,0,0">
+                    <StackPanel>
+                        <TextBlock Text="APP RAM" FontFamily="{StaticResource CabMono}" FontSize="10" Foreground="{StaticResource CabTextMut}" />
+                        <TextBlock x:Name="RamText" Text="—" FontFamily="{StaticResource CabMono}" FontSize="20" FontWeight="Bold" Foreground="{StaticResource CabAmber}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+            <TextBlock x:Name="DbPathText" FontFamily="{StaticResource CabMono}" FontSize="10"
+                Foreground="{StaticResource CabTextMut}" TextWrapping="Wrap" Margin="0,12,0,0" />
+            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                <Button Content="ABRIR CARPETA DE DATOS" Style="{StaticResource ArcadeGhostBtn}" Click="OpenFolder_Click" Padding="12,7" />
+                <Button Content="CARGAR PRUEBAS" Style="{StaticResource ArcadeGhostBtn}" Click="Seed_Click" Padding="12,7" Margin="8,0,0,0" />
+            </StackPanel>
+            <TextBlock Text="GUÍA RÁPIDA" FontFamily="{StaticResource CabMono}" FontSize="11"
+                FontWeight="Bold" Foreground="{StaticResource CabAmber}" Margin="0,18,0,0" />
+            <StackPanel Margin="0,8,0,0">
+                <TextBlock Text="★ PERFILES" FontFamily="{StaticResource PopBold}" FontSize="12" Foreground="{StaticResource CabText}" />
+                <TextBlock Text="Agrupan tus juegos por ocasión (ranked, chill, stream). + NUEVO para crear, EDITAR para nombre, 2 colores, HEX/RGB, portada y etiqueta GATE." FontSize="12" Foreground="{StaticResource CabTextDim}" TextWrapping="Wrap" Margin="0,2,0,10" />
+                <TextBlock Text="▸ ACCESOS" FontFamily="{StaticResource PopBold}" FontSize="12" Foreground="{StaticResource CabText}" />
+                <TextBlock Text="+ AGREGAR manual, arrastra .exe encima, ▶ ACTIVO desde lo abierto, STEAM desde tu librería o ⤓ IMPORTAR del equipo. El pill ARMADO salta ese acceso al lanzar; DELAY encadena uno tras otro." FontSize="12" Foreground="{StaticResource CabTextDim}" TextWrapping="Wrap" Margin="0,2,0,10" />
+                <TextBlock Text="▶ JUGAR" FontFamily="{StaticResource PopBold}" FontSize="12" Foreground="{StaticResource CabText}" />
+                <TextBlock Text="Lanza todo en orden con su cadencia. Respeta prioridad CPU, DND en ranked, minimizar y boost previo si los activaste." FontSize="12" Foreground="{StaticResource CabTextDim}" TextWrapping="Wrap" Margin="0,2,0,10" />
+                <TextBlock Text="⚡ BOOST" FontFamily="{StaticResource PopBold}" FontSize="12" Foreground="{StaticResource CabText}" />
+                <TextBlock Text="LIBERAR RAM ordena memoria sin cerrar nada; TEMPORALES borra %TEMP%; TRAGALONAS muestra apps pesadas (+80 MB) para cerrar; CIERRE AUTO cierra apps por perfil; plan de energía y Game DVR dan FPS." FontSize="12" Foreground="{StaticResource CabTextDim}" TextWrapping="Wrap" Margin="0,2,0,10" />
+                <TextBlock Text="■ SESIÓN" FontFamily="{StaticResource PopBold}" FontSize="12" Foreground="{StaticResource CabText}" />
+                <TextBlock Text="Cronómetro con pausar/reiniciar. CERRAR TODO cierra solo tu sesión (incluye juegos que ya estaban abiertos). DAEMON.WATCH cuenta sus procesos." FontSize="12" Foreground="{StaticResource CabTextDim}" TextWrapping="Wrap" Margin="0,2,0,10" />
+                <TextBlock Text="◉ BANDEJA" FontFamily="{StaticResource PopBold}" FontSize="12" Foreground="{StaticResource CabText}" />
+                <TextBlock Text="Cerrar la ventana la esconde en la bandeja (sigue corriendo). Doble clic o Ctrl+Alt+L para abrir; clic derecho para RAM rápida, favorito o salir." FontSize="12" Foreground="{StaticResource CabTextDim}" TextWrapping="Wrap" Margin="0,2,0,4" />
+            </StackPanel>
+            </StackPanel>
+            </ScrollViewer>
+            <Button Grid.Row="2" Content="■ CERRAR" Style="{StaticResource ArcadePlayBtn}" FontSize="13"
+                    Padding="15,8" Margin="0,14,0,0" HorizontalAlignment="Right" Click="Close_Click" />
+        </Grid>
+    </Border>
+</ui:FluentWindow>
