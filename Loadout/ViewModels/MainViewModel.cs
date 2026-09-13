@@ -200,7 +200,7 @@ public sealed partial class MainViewModel : ObservableObject
                 StatusLine = $"Llevas {el:hh\\:mm} jugando. Toma un descanso.";
         };
         _pollTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
-        _pollTimer.Tick += (_, _) => { RefreshSlotStates(); UpdateSysInfo(); MaintainSessionPriorities(); };
+        _pollTimer.Tick += PollTick;
     }
 
     partial void OnSelectedLoadoutChanged(LoadoutEntryViewModel? value)
@@ -240,10 +240,62 @@ public sealed partial class MainViewModel : ObservableObject
 
     public HashSet<int> GetSessionPids() => _launcher.GetLiveSessionIds();
 
-    /// <summary>Watcher vivo: mientras juegas re-aplica High a la sesión + hijos (LoL/Valo).</summary>
+    /// <summary>Watcher vivo: re-aplica High solo cuando el cooldown lo permite (background thread).</summary>
     private void MaintainSessionPriorities()
     {
-        try { if (IsPlaying && HighPriority) _launcher.MaintainPriorities(); } catch { }
+        try { if (IsPlaying && HighPriority && _launcher.ShouldMaintainNow()) _launcher.MaintainPriorities(); } catch { }
+    }
+
+    /// <summary>Poll tick: operaciones ligeras en UI, pesadas en background.</summary>
+    private bool _pollRunning;
+    private async void PollTick(object? sender, EventArgs e)
+    {
+        RefreshSlotStates();
+        if (_pollRunning) return; // evitar overlap de ticks
+        _pollRunning = true;
+        try
+        {
+            // Operaciones pesadas en background thread — no bloquear el dispatcher
+            var info = await Task.Run(() =>
+            {
+                MaintainSessionPriorities();
+                return CollectSysInfo();
+            });
+            // Solo asignar valores en UI thread (ligero)
+            if (info != null)
+            {
+                AppRamText = info.Value.AppRam;
+                SysMemText = info.Value.SysMem;
+                WatchText = info.Value.Watch;
+                _sparkHistory.Add(info.Value.AppMb);
+                if (_sparkHistory.Count > 24) _sparkHistory.RemoveAt(0);
+                RebuildSpark();
+            }
+        }
+        catch { }
+        finally { _pollRunning = false; }
+    }
+
+    private readonly record struct SysInfoSnapshot(string AppRam, string SysMem, string Watch, double AppMb);
+    /// <summary>Cached ComputerInfo — evita crear uno nuevo cada 3s.</summary>
+    private Microsoft.VisualBasic.Devices.ComputerInfo? _cachedCi;
+
+    private SysInfoSnapshot? CollectSysInfo()
+    {
+        try
+        {
+            double appMb = Environment.WorkingSet / (1024.0 * 1024.0);
+            _cachedCi ??= new Microsoft.VisualBasic.Devices.ComputerInfo();
+            double totalGb = _cachedCi.TotalPhysicalMemory / (1024.0 * 1024 * 1024.0);
+            double usedGb = (_cachedCi.TotalPhysicalMemory - _cachedCi.AvailablePhysicalMemory) / (1024.0 * 1024 * 1024.0);
+            int n = _launcher.GetLiveSessionIds().Count;
+            return new SysInfoSnapshot(
+                $"RAM: {appMb:0.0} MB",
+                $"SYS.MEM: {usedGb:0.0} / {totalGb:0.0} GB",
+                $"DAEMON.WATCH: {n} PROCESSES",
+                appMb);
+        }
+        catch { return null; }
     }
 
     public string TrayLabel => HotkeyArmed ? "((•)) TRAY: ARMED" : "((•)) TRAY: SIN HOTKEY";
@@ -495,7 +547,10 @@ public sealed partial class MainViewModel : ObservableObject
         {
             try
             {
-                int n = new BoostService().TrimWorkingSets();
+                // Proteger procesos de la sesión del trim — no vaciar RAM del juego
+                var sessionPids = GetSessionPids();
+                var sessionNames = _launcher.GetSessionNames();
+                int n = new BoostService().TrimWorkingSets(sessionPids, sessionNames);
                 boostNote = $" ⚡Boost:{n}.";
                 StatusLine = $"⚡ Boost previo: {n} procesos optimizados. Lanzando {SelectedLoadout.Name}…";
             }
@@ -647,6 +702,8 @@ public sealed partial class MainViewModel : ObservableObject
         }
     }
 
+    // UpdateSysInfo ya no se usa directamente — reemplazado por CollectSysInfo() en background
+    // Se mantiene solo para llamadas puntuales (LoadAsync, primera carga)
     private void UpdateSysInfo()
     {
         try
@@ -657,9 +714,9 @@ public sealed partial class MainViewModel : ObservableObject
             if (_sparkHistory.Count > 24) _sparkHistory.RemoveAt(0);
             RebuildSpark();
 
-            var ci = new Microsoft.VisualBasic.Devices.ComputerInfo();
-            double totalGb = ci.TotalPhysicalMemory / (1024.0 * 1024 * 1024.0);
-            double usedGb = (ci.TotalPhysicalMemory - ci.AvailablePhysicalMemory) / (1024.0 * 1024 * 1024.0);
+            _cachedCi ??= new Microsoft.VisualBasic.Devices.ComputerInfo();
+            double totalGb = _cachedCi.TotalPhysicalMemory / (1024.0 * 1024 * 1024.0);
+            double usedGb = (_cachedCi.TotalPhysicalMemory - _cachedCi.AvailablePhysicalMemory) / (1024.0 * 1024 * 1024.0);
             SysMemText = $"SYS.MEM: {usedGb:0.0} / {totalGb:0.0} GB";
         }
         catch { }

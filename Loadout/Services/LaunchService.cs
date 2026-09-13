@@ -38,6 +38,11 @@ public sealed class LaunchService
     /// <summary>Nombres extra que el watcher debe mantener en High durante la sesión.</summary>
     private readonly HashSet<string> _priorityNames = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>PIDs que ya tienen prioridad aplicada — evita syscalls redundantes.</summary>
+    private readonly HashSet<int> _alreadyBoosted = new();
+    /// <summary>Momento en que empezó el boost — para cooldown inteligente.</summary>
+    private DateTime _boostStartTime;
+
     public IReadOnlyList<Process> SessionProcesses
     {
         get { lock (_lock) { return _session.Where(p => !p.HasExited).ToList(); } }
@@ -128,18 +133,80 @@ public sealed class LaunchService
         }
     }
 
+    /// <summary>Versión con cache: solo llama SetPriorityClass si el PID no fue boostado antes.</summary>
+    private void SetHighCached(int pid)
+    {
+        lock (_lock) { if (_alreadyBoosted.Contains(pid)) return; }
+        try
+        {
+            using var p = Process.GetProcessById(pid);
+            if (!p.HasExited)
+            {
+                if (p.PriorityClass != ProcessPriorityClass.High)
+                    p.PriorityClass = ProcessPriorityClass.High;
+                lock (_lock) { _alreadyBoosted.Add(pid); }
+            }
+        }
+        catch { }
+    }
+
+    /// <summary>Versión con cache: solo busca y aplica prioridad si hay PIDs nuevos.</summary>
+    private void SetHighByNameCached(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return;
+        foreach (var p in Process.GetProcessesByName(name))
+        {
+            try
+            {
+                if (p.HasExited) continue;
+                bool already;
+                lock (_lock) { already = _alreadyBoosted.Contains(p.Id); }
+                if (already) continue;
+                if (p.PriorityClass != ProcessPriorityClass.High)
+                    p.PriorityClass = ProcessPriorityClass.High;
+                lock (_lock) { _alreadyBoosted.Add(p.Id); }
+            }
+            catch { }
+            finally { try { p.Dispose(); } catch { } }
+        }
+    }
+
     /// <summary>
     /// Watcher: re-aplica High a la sesión + hijos (ej. League of Legends.exe que
-    /// nace después del cliente). Llamar cada 2-3s mientras IsPlaying.
+    /// nace después del cliente). Usa cache para evitar syscalls redundantes.
+    /// Cooldown inteligente: activo (3s) los primeros 30s, luego cada 15s.
     /// </summary>
+    public bool ShouldMaintainNow()
+    {
+        if (!HighPriority) return false;
+        double elapsed = (DateTime.UtcNow - _boostStartTime).TotalSeconds;
+        // Primeros 30s: siempre (atrapar hijos que nacen tarde)
+        if (elapsed <= 30) return true;
+        // Después: solo cada ~15s (Windows no resetea prioridades)
+        return (int)elapsed % 15 < 4; // ventana de 4s dentro de cada ciclo de 15s
+    }
+
     public void MaintainPriorities()
     {
         if (!HighPriority) return;
         List<string> names;
         lock (_lock) { names = _priorityNames.ToList(); }
         if (names.Count == 0) return;
-        foreach (string n in names) SetHighByName(n);
-        foreach (int pid in GetLiveSessionIds()) SetHigh(pid);
+        foreach (string n in names) SetHighByNameCached(n);
+        foreach (int pid in GetLiveSessionIds()) SetHighCached(pid);
+    }
+
+    /// <summary>Resetea la cache de boost al iniciar nueva sesión.</summary>
+    public void ResetBoostCache()
+    {
+        lock (_lock) { _alreadyBoosted.Clear(); }
+        _boostStartTime = DateTime.UtcNow;
+    }
+
+    /// <summary>Nombres de procesos de la sesión (para proteger del TrimWorkingSets).</summary>
+    public HashSet<string> GetSessionNames()
+    {
+        lock (_lock) { return new HashSet<string>(_sessionNames, StringComparer.OrdinalIgnoreCase); }
     }
 
     /// <summary>Sube a prioridad Alta un juego que ya estaba abierto (solo si el slot la pide).</summary>
@@ -301,6 +368,7 @@ public sealed class LaunchService
         var list = items.OrderBy(i => i.OrderIndex).ToList();
         bool anyMarked = list.Any(i => i.Enabled && i.HighPriority);
         lock (_lock) { _priorityNames.Clear(); }
+        ResetBoostCache();
         foreach (var item in list)
         {
             if (ct.IsCancellationRequested) break;

@@ -57,8 +57,9 @@ public sealed class BoostService
         availMb = ci.AvailablePhysicalMemory / (1024.0 * 1024.0);
     }
 
-    /// <summary>Recorta la RAM en uso de procesos accesibles. Devuelve cuántos se optimizaron.</summary>
-    public int TrimWorkingSets()
+    /// <summary>Recorta la RAM en uso de procesos accesibles. Devuelve cuántos se optimizaron.
+    /// Protege procesos de la sesión de juego para no causar page-faults y lag.</summary>
+    public int TrimWorkingSets(HashSet<int>? sessionPids = null, HashSet<string>? sessionNames = null)
     {
         int done = 0;
         int self = Environment.ProcessId;
@@ -67,10 +68,14 @@ public sealed class BoostService
             try
             {
                 if (p.Id == 0 || p.Id == 4 || p.Id == self) continue;
+                if (sessionPids != null && sessionPids.Contains(p.Id)) continue;
                 if (p.HasExited) continue;
                 string name;
                 try { name = p.ProcessName; } catch { continue; }
                 if (Protected.Contains(name)) continue;
+                if (sessionNames != null && sessionNames.Contains(name)) continue;
+                // Solo trimear procesos pesados (>100 MB) — evita overhead en procesos chicos
+                try { if (p.WorkingSet64 < 100 * 1024 * 1024) continue; } catch { continue; }
                 if (EmptyWorkingSet(p.Handle)) done++;
             }
             catch { }
