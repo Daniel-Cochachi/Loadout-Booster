@@ -11,7 +11,7 @@
     <ApplicationIcon>Assets\Logo\loadout.ico</ApplicationIcon>
     <!-- Velopack: Main propio en App.xaml.cs (evita overhead WPF al aplicar updates) -->
     <StartupObject>Loadout.App</StartupObject>
-    <Version>1.0.4</Version>
+    <Version>1.0.5</Version>
   </PropertyGroup>
 
   <ItemGroup>
