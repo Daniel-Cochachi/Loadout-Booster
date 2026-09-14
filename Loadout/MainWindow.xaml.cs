@@ -230,18 +230,6 @@ public partial class MainWindow : FluentWindow
 
     private DatabaseService Db => (DatabaseService)Application.Current.Properties["Db"]!;
 
-    private async Task<bool> CheckFreeLimitAsync()
-    {
-        string? max = await Db.GetSettingAsync("MaxFreeLoadouts", "3");
-        if (int.TryParse(max, out int lim) && _vm.Loadouts.Count >= lim)
-        {
-            ConfirmDialog.Info(this, "LÍMITE GRATIS",
-                $"Alcanzaste el límite gratis ({lim} perfiles). Desbloquea PRO para crear más.");
-            return false;
-        }
-        return true;
-    }
-
     // ---------- Favorito (bandeja + hotkey juegan este) ----------
     private async Task<int?> GetFavoriteIdAsync()
     {
@@ -407,7 +395,6 @@ public partial class MainWindow : FluentWindow
         if (dlg.ShowDialog() != true) return;
         _ = Task.Run(async () =>
         {
-            if (!await CheckFreeLimitAsync()) return;
             await Db.CreateLoadoutAsync(dlg.LoadoutName, dlg.ColorHex, dlg.CoverPath, dlg.ColorHex2, dlg.Notes);
             await Dispatcher.InvokeAsync(async () =>
             {

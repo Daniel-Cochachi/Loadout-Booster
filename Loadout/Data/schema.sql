@@ -38,7 +38,6 @@ CREATE TABLE IF NOT EXISTS AppSettings (
     Key TEXT PRIMARY KEY,
     Value TEXT NOT NULL
 );
-INSERT OR IGNORE INTO AppSettings (Key, Value) VALUES ('MaxFreeLoadouts', '3');
 INSERT OR IGNORE INTO AppSettings (Key, Value) VALUES ('RankedDnd', 'true');
 INSERT OR IGNORE INTO AppSettings (Key, Value) VALUES ('MinimizeToTray', 'true');
 INSERT OR IGNORE INTO AppSettings (Key, Value) VALUES ('StartWithWindows', 'false');
