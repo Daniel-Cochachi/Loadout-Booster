@@ -40,14 +40,27 @@ public sealed class BoostService
         try { GC.Collect(2, GCCollectionMode.Optimized, false); } catch { }
     }
 
-    // Procesos que jamás se tocan (sistema, shell, host críticos)
-    private static readonly HashSet<string> Protected = new(StringComparer.OrdinalIgnoreCase)
+    // Procesos que jamás se tocan (sistema, shell, host críticos, anticheat, audio, drivers de GPU y juegos)
+    public static readonly HashSet<string> Protected = new(StringComparer.OrdinalIgnoreCase)
     {
+        // Sistema y Windows
         "system", "registry", "smss", "csrss", "wininit", "services", "lsass", "lsaiso",
         "dwm", "explorer", "taskhostw", "shellexperiencehost", "searchhost",
         "startmenuexperiencehost", "sihost", "ctfmon", "fontdrvhost", "conhost",
         "winlogon", "spoolsv", "svchost", "runtimebroker", "applicationframehost",
-        "idle", "secure system", "memory compression"
+        "idle", "secure system", "memory compression",
+        // Audio y entrada (vitales para evitar stuttering y cortes)
+        "audiodg",
+        // Controladores de GPU (NVIDIA, AMD, Intel)
+        "nvcontainer", "nvsphelper64", "nvcplprocessor",
+        "amdrsserv", "radeonsoftware", "amdow",
+        "igfxem", "igfxhk", "igfxtray",
+        // Anticheats (prohibido matar o alterar prioridad)
+        "vgc", "vgtray", "easyanticheat", "easyanticheat_eos", "beservice",
+        // Juegos y launchers de Riot
+        "valorant", "valorant-win64-shipping",
+        "league of legends", "leagueclient", "leagueclientux", "leagueclientuxrender",
+        "riotclientservices", "riotclientelectron", "riotclientux"
     };
 
     public void GetMemory(out double totalMb, out double availMb)

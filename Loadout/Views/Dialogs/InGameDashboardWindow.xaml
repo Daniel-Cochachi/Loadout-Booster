@@ -1,0 +1,137 @@
+<Window x:Class="Loadout.Views.Dialogs.InGameDashboardWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="LOADOUT · Dashboard en Juego"
+        Width="380" Height="470"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        WindowStartupLocation="Manual"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        RenderOptions.BitmapScalingMode="LowQuality"
+        RenderOptions.ClearTypeHint="Enabled"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="Auto"
+        FontFamily="{StaticResource CabUi}">
+
+    <Border Background="#12121A"
+            BorderBrush="{StaticResource CabAmber}"
+            BorderThickness="1.5"
+            CornerRadius="12">
+        <Grid Margin="16,12,16,14">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- HEADER / DRAG BAR -->
+            <Grid Grid.Row="0" Background="Transparent" MouseLeftButtonDown="Header_MouseLeftButtonDown" Cursor="SizeAll">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Ellipse Width="8" Height="8" Fill="{StaticResource CabGreen}" Margin="0,0,8,0" />
+                    <TextBlock Text="DASHBOARD EN JUEGO" FontFamily="{StaticResource PopBlack}" FontSize="13" Foreground="{StaticResource CabText}" VerticalAlignment="Center" />
+                    <Border Background="{StaticResource CabSurface}" BorderBrush="{StaticResource CabHairline}" BorderThickness="1" CornerRadius="4" Padding="5,2" Margin="8,0,0,0">
+                        <TextBlock x:Name="HotkeyHintText" Text="Ctrl+F11" FontFamily="{StaticResource CabMono}" FontSize="9" FontWeight="Bold" Foreground="{StaticResource CabAmber}" />
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="—" Style="{StaticResource ArcadeGhostBtn}" Width="28" Height="26" Padding="0" FontSize="11" Margin="0,0,4,0" Click="Collapse_Click" ToolTip="Modo Mini HUD" />
+                    <Button Content="✕" Style="{StaticResource ArcadeGhostBtn}" Width="28" Height="26" Padding="0" FontSize="11" Click="Close_Click" ToolTip="Ocultar (Atajo para volver a abrir)" />
+                </StackPanel>
+            </Grid>
+
+            <!-- RAM STATUS -->
+            <Border Grid.Row="1" Background="{StaticResource CabSurface}" BorderBrush="{StaticResource CabHairline}" BorderThickness="1" CornerRadius="10" Padding="12,10" Margin="0,12,0,10">
+                <StackPanel>
+                    <Grid>
+                        <TextBlock Text="ESTADO DE MEMORIA" FontFamily="{StaticResource CabMono}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource CabTextMut}" />
+                        <TextBlock x:Name="RamStatusText" Text="RAM: 0 / 0 GB" FontFamily="{StaticResource CabMono}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource CabAmber}" HorizontalAlignment="Right" />
+                    </Grid>
+                    <ProgressBar x:Name="RamBar" Height="7" Margin="0,8,0,4" Background="{StaticResource CabSurface2}" Foreground="{StaticResource CabCrimson}" BorderThickness="0" />
+                    <TextBlock x:Name="RamFreeText" Text="Libres: — MB" FontFamily="{StaticResource CabMono}" FontSize="10" Foreground="{StaticResource CabTextDim}" HorizontalAlignment="Right" />
+                </StackPanel>
+            </Border>
+
+            <!-- TRAGALONAS LIST -->
+            <Grid Grid.Row="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0" Margin="0,0,0,6">
+                    <TextBlock Text="CONSUMO EN VIVO (TOP APPS)" FontFamily="{StaticResource CabMono}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource CabAmber}" />
+                    <TextBlock x:Name="RefreshStatusText" Text="En vivo" FontFamily="{StaticResource CabMono}" FontSize="9" Foreground="{StaticResource CabTextMut}" HorizontalAlignment="Right" />
+                </Grid>
+
+                <ListBox x:Name="HogList" Grid.Row="1" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Margin" Value="0,0,0,5" />
+                            <Setter Property="Background" Value="Transparent" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <ContentPresenter />
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="{StaticResource CabSurface2}" BorderBrush="{StaticResource CabHairline}" BorderThickness="1" CornerRadius="8" Padding="10,7">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Name}" FontFamily="{StaticResource PopBold}" FontSize="12" Foreground="{StaticResource CabText}" TextTrimming="CharacterEllipsis" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                            <TextBlock Text="{Binding Mb, StringFormat='{}{0:0} MB'}" FontFamily="{StaticResource CabMono}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource CabGold}" />
+                                            <TextBlock Text="{Binding CpuText}" FontFamily="{StaticResource CabMono}" FontSize="10" Foreground="{StaticResource CabTextMut}" Margin="8,0,0,0" />
+                                        </StackPanel>
+                                    </StackPanel>
+
+                                    <Button Grid.Column="1" Content="✕ CERRAR" Style="{StaticResource ArcadeGhostBtn}"
+                                            Padding="8,4" FontSize="10" Foreground="{StaticResource CabCrimson}"
+                                            Tag="{Binding Pid}" Click="KillApp_Click"
+                                            ToolTip="Cerrar este proceso para recuperar FPS" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+
+            <!-- FOOTER ACTIONS -->
+            <Grid Grid.Row="3" Margin="0,10,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock x:Name="FeedbackText" Text="Modo gaming activo · 0% CPU al estar oculto"
+                           FontFamily="{StaticResource CabMono}" FontSize="10" Foreground="{StaticResource CabTextDim}"
+                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+
+                <Button Grid.Column="1" Content="⚡ BOOST RÁPIDO" Style="{StaticResource ArcadePlayBtn}"
+                        Padding="12,6" FontSize="11" Click="QuickBoost_Click"
+                        ToolTip="Liberar memoria inmediatamente sin tocar el juego" />
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

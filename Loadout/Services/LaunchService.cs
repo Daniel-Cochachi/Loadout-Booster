@@ -22,21 +22,30 @@ public sealed class LaunchService
     /// <summary>Master switch: si false, nadie recibe prioridad aunque el slot la tenga marcada.</summary>
     public bool HighPriority { get; set; }
 
-    /// <summary>Nombres de procesos hijos que heredan prioridad (cliente -&gt; partida real).</summary>
+    /// <summary>
+    /// Prioridad segura para juegos: AboveNormal.
+    /// Da preferencia de CPU al juego sin desestabilizar el motor de audio (audiodg),
+    /// la entrada de ratón/teclado ni el anticheat (Riot Vanguard / vgc).
+    /// </summary>
+    public const ProcessPriorityClass GamePriority = ProcessPriorityClass.AboveNormal;
+
+    /// <summary>Nombres de procesos hijos que heredan prioridad (cliente -> partida real).</summary>
     private static readonly Dictionary<string, string[]> CompanionMap = new(StringComparer.OrdinalIgnoreCase)
     {
-        // LoL: lobby -> partida real + launcher
-        ["LeagueClientUx"] = new[] { "League of Legends", "RiotClientServices", "RiotClientElectron" },
-        ["RiotClientServices"] = new[] { "LeagueClientUx", "LeagueClient", "League of Legends", "VALORANT", "VALORANT-Win64-Shipping" },
-        ["RiotClientElectron"] = new[] { "LeagueClientUx", "League of Legends", "VALORANT", "VALORANT-Win64-Shipping" },
-        ["League of Legends"] = new[] { "LeagueClientUx", "RiotClientServices" },
-        // Valorant: launcher -> juego
-        ["VALORANT"] = new[] { "VALORANT-Win64-Shipping", "RiotClientServices", "Vanguard" },
-        ["VALORANT-Win64-Shipping"] = new[] { "VALORANT", "RiotClientServices" },
+        // LoL: lobby -> partida real (NUNCA navegadores web de Riot como RiotClientServices o RiotClientElectron)
+        ["LeagueClientUx"] = new[] { "League of Legends" },
+        ["LeagueClient"] = new[] { "League of Legends" },
+        ["RiotClientServices"] = new[] { "League of Legends", "VALORANT-Win64-Shipping" },
+        // Valorant: launcher -> motor 3D de partida (NUNCA Vanguard ni RiotClient)
+        ["VALORANT"] = new[] { "VALORANT-Win64-Shipping" },
+        ["VALORANT-Win64-Shipping"] = new[] { "VALORANT-Win64-Shipping" },
     };
 
-    /// <summary>Nombres extra que el watcher debe mantener en High durante la sesión.</summary>
+    /// <summary>Nombres extra que el watcher debe detectar una vez durante la sesión.</summary>
     private readonly HashSet<string> _priorityNames = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Nombres que ya fueron detectados y priorizados — evita llamar a GetProcessesByName en bucle.</summary>
+    private readonly HashSet<string> _satisfiedNames = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>PIDs que ya tienen prioridad aplicada — evita syscalls redundantes.</summary>
     private readonly HashSet<int> _alreadyBoosted = new();
@@ -86,9 +95,9 @@ public sealed class LaunchService
     }
 
     /// <summary>
-    /// ¿Este item quiere prioridad? Regla: si el master está OFF -&gt; nadie.
-    /// Si el master está ON y NINGÚN slot la tiene marcada -&gt; todos (compatibilidad v1.0).
-    /// Si al menos uno la tiene marcada -&gt; solo esos.
+    /// ¿Este item quiere prioridad? Regla: si el master está OFF -> nadie.
+    /// Si el master está ON y NINGÚN slot la tiene marcada -> todos (compatibilidad v1.0).
+    /// Si al menos uno la tiene marcada -> solo esos.
     /// </summary>
     public static bool WantsPriority(LoadoutItem item, bool masterOn, bool anyMarked)
     {
@@ -112,29 +121,19 @@ public sealed class LaunchService
             lock (_lock) { foreach (var c in companions) _priorityNames.Add(c); }
     }
 
-    private static void SetHigh(int pid)
+    private static void SetPriority(int pid)
     {
         try
         {
             using var p = Process.GetProcessById(pid);
-            if (!p.HasExited) p.PriorityClass = ProcessPriorityClass.High;
+            if (!p.HasExited && p.PriorityClass != GamePriority)
+                p.PriorityClass = GamePriority;
         }
         catch { }
     }
 
-    private static void SetHighByName(string name)
-    {
-        if (string.IsNullOrWhiteSpace(name)) return;
-        foreach (var p in Process.GetProcessesByName(name))
-        {
-            try { if (!p.HasExited) p.PriorityClass = ProcessPriorityClass.High; }
-            catch { }
-            finally { try { p.Dispose(); } catch { } }
-        }
-    }
-
     /// <summary>Versión con cache: solo llama SetPriorityClass si el PID no fue boostado antes.</summary>
-    private void SetHighCached(int pid)
+    private void SetPriorityCached(int pid)
     {
         lock (_lock) { if (_alreadyBoosted.Contains(pid)) return; }
         try
@@ -142,64 +141,94 @@ public sealed class LaunchService
             using var p = Process.GetProcessById(pid);
             if (!p.HasExited)
             {
-                if (p.PriorityClass != ProcessPriorityClass.High)
-                    p.PriorityClass = ProcessPriorityClass.High;
+                if (p.PriorityClass != GamePriority)
+                    p.PriorityClass = GamePriority;
                 lock (_lock) { _alreadyBoosted.Add(pid); }
             }
         }
         catch { }
     }
 
-    /// <summary>Versión con cache: solo busca y aplica prioridad si hay PIDs nuevos.</summary>
-    private void SetHighByNameCached(string name)
+    /// <summary>
+    /// Versión con cache inteligente: busca una vez el proceso por nombre.
+    /// En cuanto lo encuentra y le aplica prioridad AboveNormal, lo marca como 'satisfecho'
+    /// y NUNCA más vuelve a escanear el sistema con GetProcessesByName.
+    /// </summary>
+    private void SetPriorityByNameCached(string name)
     {
         if (string.IsNullOrWhiteSpace(name)) return;
-        foreach (var p in Process.GetProcessesByName(name))
+        lock (_lock) { if (_satisfiedNames.Contains(name)) return; }
+        bool foundAny = false;
+        try
         {
-            try
+            foreach (var p in Process.GetProcessesByName(name))
             {
-                if (p.HasExited) continue;
-                bool already;
-                lock (_lock) { already = _alreadyBoosted.Contains(p.Id); }
-                if (already) continue;
-                if (p.PriorityClass != ProcessPriorityClass.High)
-                    p.PriorityClass = ProcessPriorityClass.High;
-                lock (_lock) { _alreadyBoosted.Add(p.Id); }
+                try
+                {
+                    if (p.HasExited) continue;
+                    foundAny = true;
+                    bool already;
+                    lock (_lock) { already = _alreadyBoosted.Contains(p.Id); }
+                    if (!already)
+                    {
+                        if (p.PriorityClass != GamePriority)
+                            p.PriorityClass = GamePriority;
+                        lock (_lock) { _alreadyBoosted.Add(p.Id); }
+                    }
+                }
+                catch { }
+                finally { try { p.Dispose(); } catch { } }
             }
-            catch { }
-            finally { try { p.Dispose(); } catch { } }
+        }
+        catch { }
+
+        if (foundAny)
+        {
+            lock (_lock) { _satisfiedNames.Add(name); }
         }
     }
 
     /// <summary>
-    /// Watcher: re-aplica High a la sesión + hijos (ej. League of Legends.exe que
-    /// nace después del cliente). Usa cache para evitar syscalls redundantes.
-    /// Cooldown inteligente: activo (3s) los primeros 30s, luego cada 15s.
+    /// Watcher inteligente: aplica prioridad al juego real cuando aparece.
+    /// Si los juegos esperados ya fueron detectados y priorizados, DEVUELVE FALSE
+    /// para evitar llamadas innecesarias al kernel durante la partida.
     /// </summary>
     public bool ShouldMaintainNow()
     {
         if (!HighPriority) return false;
+        lock (_lock)
+        {
+            // Si ya encontramos todos los ejecutables esperados, no escanear más
+            if (_priorityNames.Count > 0 && _satisfiedNames.IsSupersetOf(_priorityNames))
+                return false;
+        }
         double elapsed = (DateTime.UtcNow - _boostStartTime).TotalSeconds;
-        // Primeros 30s: siempre (atrapar hijos que nacen tarde)
-        if (elapsed <= 30) return true;
-        // Después: solo cada ~15s (Windows no resetea prioridades)
-        return (int)elapsed % 15 < 4; // ventana de 4s dentro de cada ciclo de 15s
+        // Primeros 45s: chequear cada ~3s (atrapar el arranque de LoL/Valorant tras el lobby)
+        if (elapsed <= 45) return true;
+        // Pasados 45s: chequear solo cada ~30s si aún faltaba detectar alguno
+        return (int)elapsed % 30 < 4;
     }
 
     public void MaintainPriorities()
     {
         if (!HighPriority) return;
-        List<string> names;
-        lock (_lock) { names = _priorityNames.ToList(); }
-        if (names.Count == 0) return;
-        foreach (string n in names) SetHighByNameCached(n);
-        foreach (int pid in GetLiveSessionIds()) SetHighCached(pid);
+        List<string> pending;
+        lock (_lock)
+        {
+            pending = _priorityNames.Where(n => !_satisfiedNames.Contains(n)).ToList();
+        }
+        foreach (string n in pending) SetPriorityByNameCached(n);
+        foreach (int pid in GetLiveSessionIds()) SetPriorityCached(pid);
     }
 
     /// <summary>Resetea la cache de boost al iniciar nueva sesión.</summary>
     public void ResetBoostCache()
     {
-        lock (_lock) { _alreadyBoosted.Clear(); }
+        lock (_lock)
+        {
+            _alreadyBoosted.Clear();
+            _satisfiedNames.Clear();
+        }
         _boostStartTime = DateTime.UtcNow;
     }
 
@@ -209,7 +238,7 @@ public sealed class LaunchService
         lock (_lock) { return new HashSet<string>(_sessionNames, StringComparer.OrdinalIgnoreCase); }
     }
 
-    /// <summary>Sube a prioridad Alta un juego que ya estaba abierto (solo si el slot la pide).</summary>
+    /// <summary>Sube a prioridad AboveNormal un juego que ya estaba abierto (solo si el slot la pide).</summary>
     public void BoostRunning(LoadoutItem item, bool wantPriority)
     {
         if (!wantPriority) return;
@@ -222,7 +251,8 @@ public sealed class LaunchService
             {
                 try
                 {
-                    if (!p.HasExited) p.PriorityClass = ProcessPriorityClass.High;
+                    if (!p.HasExited && p.PriorityClass != GamePriority)
+                        p.PriorityClass = GamePriority;
                 }
                 catch { }
                 finally { try { p.Dispose(); } catch { } }
@@ -265,9 +295,7 @@ public sealed class LaunchService
             catch { }
             if (wantPriority)
             {
-                try { proc.PriorityClass = ProcessPriorityClass.High; } catch { }
                 RememberPriorityNames(name);
-                RememberPriorityNames("RiotClientServices");
             }
             return proc;
         }
@@ -350,7 +378,7 @@ public sealed class LaunchService
                 catch { }
                 if (want)
                 {
-                    try { proc.PriorityClass = ProcessPriorityClass.High; } catch { }
+                    try { proc.PriorityClass = GamePriority; } catch { }
                     try { RememberPriorityNames(Path.GetFileNameWithoutExtension(target)); } catch { }
                 }
             }
@@ -411,7 +439,7 @@ public sealed class LaunchService
     {
         List<Process> copy;
         List<string> names;
-        lock (_lock) { copy = _session.ToList(); _session.Clear(); names = _sessionNames.ToList(); _sessionNames.Clear(); _priorityNames.Clear(); }
+        lock (_lock) { copy = _session.ToList(); _session.Clear(); names = _sessionNames.ToList(); _sessionNames.Clear(); _priorityNames.Clear(); _satisfiedNames.Clear(); }
         foreach (var p in copy)
         {
             int pid;

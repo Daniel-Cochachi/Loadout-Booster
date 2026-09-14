@@ -123,7 +123,9 @@ public partial class BoostDialog : FluentWindow
         try
         {
             _boost.GetMemory(out _, out double before);
-            int n = _boost.TrimWorkingSets();
+            var sessionPids = _vm.GetSessionPids();
+            var sessionNames = _vm.GetSessionNames();
+            int n = _boost.TrimWorkingSets(sessionPids, sessionNames);
             _boost.GetMemory(out _, out double after);
             ResultText.Text = $"✔ +{after - before:0} MB · {n} PROCESOS";
         }

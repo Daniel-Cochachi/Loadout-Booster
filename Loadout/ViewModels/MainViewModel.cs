@@ -139,6 +139,8 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly DatabaseService _db;
     private readonly LaunchService _launcher = new();
     private readonly DndService _dnd = new();
+    private readonly DiscordRpcService _discordRpc = new();
+    private readonly GameSentinelService _sentinel;
     private readonly DispatcherTimer _sessionTimer;
     private readonly DispatcherTimer _pollTimer;
     private readonly List<double> _sparkHistory = new();
@@ -147,6 +149,8 @@ public sealed partial class MainViewModel : ObservableObject
     private int _sessionId;
     private CancellationTokenSource? _launchCts;
     private string? _prevPowerScheme;
+
+    public event EventHandler<string>? GameAutoDetected;
 
     [ObservableProperty] private ObservableCollection<LoadoutEntryViewModel> loadouts = new();
     [ObservableProperty]
@@ -170,6 +174,8 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool autoKillTree;
     [ObservableProperty] private bool boostOnLaunch;
     [ObservableProperty] private bool perfPower;
+    [ObservableProperty] private bool autoDetectGames = true;
+    [ObservableProperty] private bool alwaysDnd = true;
     [ObservableProperty] private string sessionElapsed = "00:00:00";
     [ObservableProperty] private string statusLine = "Listo. Crea tu primer perfil.";
     [ObservableProperty] private bool isBusy;
@@ -201,6 +207,33 @@ public sealed partial class MainViewModel : ObservableObject
         };
         _pollTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
         _pollTimer.Tick += PollTick;
+
+        _sentinel = new GameSentinelService(
+            _db,
+            () => IsPlaying,
+            async () => (await _db.GetLoadoutsAsync()).ToList(),
+            async (loadoutId) => await _db.GetItemsAsync(loadoutId),
+            async (loadout, proc) => await OnGameAutoDetectedAsync(loadout, proc),
+            async () => await OnGameAutoExitedAsync()
+        );
+        _sentinel.Start();
+    }
+
+    private async Task OnGameAutoDetectedAsync(Models.Loadout profile, Process proc)
+    {
+        if (IsPlaying) return;
+        var vm = Loadouts.FirstOrDefault(l => l.Id == profile.Id);
+        if (vm != null) SelectedLoadout = vm;
+        StatusLine = $"⚡ Guardián: {profile.Name} detectado. Optimizando juego...";
+        GameAutoDetected?.Invoke(this, profile.Name);
+        await StartSessionAsync(isAutoDetected: true, detectedProc: proc);
+    }
+
+    private async Task OnGameAutoExitedAsync()
+    {
+        if (!IsPlaying) return;
+        StatusLine = "⚡ Guardián: Juego finalizado. Restaurando recursos...";
+        await StopSessionCoreAsync();
     }
 
     partial void OnSelectedLoadoutChanged(LoadoutEntryViewModel? value)
@@ -238,31 +271,65 @@ public sealed partial class MainViewModel : ObservableObject
     partial void OnPerfPowerChanged(bool value)
         => _ = _db.SetSettingAsync("PerfPower", value ? "true" : "false");
 
-    public HashSet<int> GetSessionPids() => _launcher.GetLiveSessionIds();
+    partial void OnAutoDetectGamesChanged(bool value)
+    {
+        if (_sentinel != null) _sentinel.Enabled = value;
+        _ = _db.SetSettingAsync("AutoDetectGames", value ? "true" : "false");
+    }
 
-    /// <summary>Watcher vivo: re-aplica High solo cuando el cooldown lo permite (background thread).</summary>
+    partial void OnAlwaysDndChanged(bool value)
+        => _ = _db.SetSettingAsync("AlwaysDnd", value ? "true" : "false");
+
+    public HashSet<int> GetSessionPids() => _launcher.GetLiveSessionIds();
+    public HashSet<string> GetSessionNames() => _launcher.GetSessionNames();
+
+    /// <summary>Indica si la ventana está minimizada o en bandeja para suspender tareas de UI.</summary>
+    public bool IsWindowSuspended { get; set; }
+
+    /// <summary>Watcher vivo: re-aplica prioridad solo cuando el cooldown lo permite (background thread).</summary>
     private void MaintainSessionPriorities()
     {
         try { if (IsPlaying && HighPriority && _launcher.ShouldMaintainNow()) _launcher.MaintainPriorities(); } catch { }
     }
 
-    /// <summary>Poll tick: operaciones ligeras en UI, pesadas en background.</summary>
+    /// <summary>Poll tick: cero uso de CPU cuando la app está minimizada mientras juegas.</summary>
     private bool _pollRunning;
+    private int _suspendedCycle;
+
     private async void PollTick(object? sender, EventArgs e)
     {
+        // Si la ventana está en segundo plano/minimizada:
+        if (IsWindowSuspended)
+        {
+            _suspendedCycle++;
+            // Durante la partida: solo mantener el watcher de prioridad ligero
+            if (IsPlaying && HighPriority && _launcher.ShouldMaintainNow())
+            {
+                await Task.Run(() => MaintainSessionPriorities());
+            }
+            // No recalcular gráficas, no consultar ComputerInfo, no actualizar texto WPF
+            // Solo comprobar si los slots siguen vivos cada ~15s (5 ciclos de 3s)
+            if (_suspendedCycle % 5 == 0)
+            {
+                RefreshSlotStates();
+            }
+            return;
+        }
+
+        _suspendedCycle = 0;
         RefreshSlotStates();
         if (_pollRunning) return; // evitar overlap de ticks
         _pollRunning = true;
         try
         {
-            // Operaciones pesadas en background thread — no bloquear el dispatcher
+            // Operaciones en background thread solo si la ventana es visible
             var info = await Task.Run(() =>
             {
                 MaintainSessionPriorities();
                 return CollectSysInfo();
             });
-            // Solo asignar valores en UI thread (ligero)
-            if (info != null)
+            // Asignar valores en UI thread solo cuando la ventana se está viendo
+            if (info != null && !IsWindowSuspended)
             {
                 AppRamText = info.Value.AppRam;
                 SysMemText = info.Value.SysMem;
@@ -345,6 +412,9 @@ public sealed partial class MainViewModel : ObservableObject
             AutoKillTree = await _db.GetSettingAsync("AutoKillTree", "false") == "true";
             BoostOnLaunch = await _db.GetSettingAsync("BoostOnLaunch", "false") == "true";
             PerfPower = await _db.GetSettingAsync("PerfPower", "false") == "true";
+            AutoDetectGames = await _db.GetSettingAsync("AutoDetectGames", "true") == "true";
+            AlwaysDnd = await _db.GetSettingAsync("AlwaysDnd", "true") == "true";
+            if (_sentinel != null) _sentinel.Enabled = AutoDetectGames;
             _launcher.HighPriority = HighPriority;
 
             var list = await _db.GetLoadoutsAsync();
@@ -496,16 +566,20 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand(CanExecute = nameof(CanPlay))]
-    private async Task PlayAsync()
+    public async Task PlayAsync() => await StartSessionAsync(isAutoDetected: false, detectedProc: null);
+
+    public async Task StartSessionAsync(bool isAutoDetected, Process? detectedProc)
     {
         if (SelectedLoadout == null || IsPlaying || Slots.Count == 0) return;
         IsPlaying = true;
         Paused = false;
+        if (!isAutoDetected) _sentinel.MarkManualSessionStarted();
         OnPropertyChanged(nameof(PauseLabel));
         OnPropertyChanged(nameof(SessionStateLabel));
         foreach (var l in Loadouts) l.IsActive = l.Id == SelectedLoadout.Id;
         SelectedLoadout.IsActive = true;
         _sessionStart = DateTime.Now;
+        _ = _discordRpc.UpdatePresenceAsync($"Perfil: {SelectedLoadout.Name}", "Optimizando con Loadout", _sessionStart);
         SessionElapsed = "00:00:00";
         _sessionTimer.Start();
         _pollTimer.Start();
@@ -513,22 +587,19 @@ public sealed partial class MainViewModel : ObservableObject
         try { _sessionId = await _db.StartSessionAsync(SelectedLoadout.Id); } catch { }
 
         bool dndOn = false;
-        if (RankedMode)
+        if (AlwaysDnd || (RankedMode && await _db.GetSettingAsync("RankedDnd", "true") == "true"))
         {
             try
             {
-                if (await _db.GetSettingAsync("RankedDnd", "true") == "true")
-                {
-                    _dnd.Enable();
-                    dndOn = _dnd.IsActive;
-                }
+                _dnd.Enable();
+                dndOn = _dnd.IsActive;
             }
             catch { }
         }
         OnPropertyChanged(nameof(DndActive));
         OnPropertyChanged(nameof(DndLabel));
 
-        if (MinimizeOnLaunch)
+        if (MinimizeOnLaunch && !isAutoDetected)
         {
             try
             {
@@ -537,6 +608,7 @@ public sealed partial class MainViewModel : ObservableObject
                     if (App.Current.MainWindow is System.Windows.Window w)
                         w.WindowState = System.Windows.WindowState.Minimized;
                 });
+                BoostService.TrimSelf();
             }
             catch { }
         }
@@ -547,16 +619,26 @@ public sealed partial class MainViewModel : ObservableObject
         {
             try
             {
-                // Proteger procesos de la sesión del trim — no vaciar RAM del juego
+                // Proteger procesos de la sesión del trim — no vaciar RAM del juego ni de lo que se va a abrir
                 var sessionPids = GetSessionPids();
+                if (detectedProc != null) sessionPids.Add(detectedProc.Id);
                 var sessionNames = _launcher.GetSessionNames();
+                foreach (var it in items)
+                {
+                    try
+                    {
+                        string targetName = Path.GetFileNameWithoutExtension(it.Target.Trim('"'));
+                        if (!string.IsNullOrWhiteSpace(targetName)) sessionNames.Add(targetName);
+                    }
+                    catch { }
+                }
                 int n = new BoostService().TrimWorkingSets(sessionPids, sessionNames);
                 boostNote = $" ⚡Boost:{n}.";
-                StatusLine = $"⚡ Boost previo: {n} procesos optimizados. Lanzando {SelectedLoadout.Name}…";
+                StatusLine = $"⚡ Boost previo: {n} procesos optimizados. {SelectedLoadout.Name}…";
             }
-            catch { StatusLine = $"Lanzando {SelectedLoadout.Name}…"; }
+            catch { StatusLine = $"Iniciando {SelectedLoadout.Name}…"; }
         }
-        else StatusLine = $"Lanzando {SelectedLoadout.Name}…";
+        else StatusLine = $"Iniciando {SelectedLoadout.Name}…";
 
         // Kill-list del perfil: cierra apps configuradas antes de jugar
         try
@@ -564,8 +646,10 @@ public sealed partial class MainViewModel : ObservableObject
             var patterns = await _db.GetKillListAsync(SelectedLoadout.Id);
             if (patterns.Count > 0)
             {
-                var (k, _) = new BoostService().KillByNames(patterns, GetSessionPids());
-                if (k > 0) StatusLine = $"⚡ Kill-list: {k} app(s) cerradas. Lanzando {SelectedLoadout.Name}…";
+                var sessionPids = GetSessionPids();
+                if (detectedProc != null) sessionPids.Add(detectedProc.Id);
+                var (k, _) = new BoostService().KillByNames(patterns, sessionPids);
+                if (k > 0) StatusLine = $"⚡ Kill-list: {k} app(s) cerradas. {SelectedLoadout.Name}…";
             }
         }
         catch { }
@@ -585,18 +669,33 @@ public sealed partial class MainViewModel : ObservableObject
         }
         foreach (var s in Slots) s.State = SlotState.Idle;
 
-        await _launcher.LaunchSequenceAsync(items, (item, skipped) =>
+        if (isAutoDetected && detectedProc != null)
         {
-            App.Current.Dispatcher.Invoke(() =>
+            _launcher.Track(detectedProc);
+            if (HighPriority)
             {
-                var slot = Slots.FirstOrDefault(s => s.ItemId == item.Id);
-                if (slot != null) slot.State = skipped || _launcher.AlreadyRunning(item) ? SlotState.Running : SlotState.Launching;
-            });
-        }, _launchCts.Token);
+                try { detectedProc.PriorityClass = LaunchService.GamePriority; } catch { }
+            }
+            string procName = detectedProc.ProcessName;
+            var matchedSlot = Slots.FirstOrDefault(s => !string.IsNullOrWhiteSpace(s.Target) &&
+                string.Equals(Path.GetFileNameWithoutExtension(s.Target.Trim('"')), procName, StringComparison.OrdinalIgnoreCase));
+            if (matchedSlot != null) matchedSlot.State = SlotState.Running;
+        }
+        else
+        {
+            await _launcher.LaunchSequenceAsync(items, (item, skipped) =>
+            {
+                App.Current.Dispatcher.Invoke(() =>
+                {
+                    var slot = Slots.FirstOrDefault(s => s.ItemId == item.Id);
+                    if (slot != null) slot.State = skipped || _launcher.AlreadyRunning(item) ? SlotState.Running : SlotState.Launching;
+                });
+            }, _launchCts.Token);
+        }
 
         RefreshSlotStates();
         UpdateSysInfo();
-        StatusLine = (dndOn ? $"EN RANKED: {SelectedLoadout.Name} · DND ACTIVADO." : $"En juego: {SelectedLoadout.Name}.") + boostNote;
+        StatusLine = (dndOn ? $"EN JUEGO: {SelectedLoadout.Name} · DND ACTIVO." : $"En juego: {SelectedLoadout.Name}.") + boostNote;
         PlayCommand.NotifyCanExecuteChanged();
     }
 
@@ -638,26 +737,12 @@ public sealed partial class MainViewModel : ObservableObject
         StatusLine = "Cronómetro reiniciado. Nueva sesión registrada.";
     }
 
-    [RelayCommand(CanExecute = nameof(CanStop))]
-    private async Task StopAsync()
+    public async Task StopSessionCoreAsync()
     {
-        if (!IsPlaying)
-        {
-            StatusLine = "Nada en juego.";
-            return;
-        }
-        int live = _launcher.GetLiveSessionIds().Count;
-        bool confirmed = await Application.Current.Dispatcher.InvokeAsync(() =>
-            ConfirmDialog.Ask(
-                (Window)Application.Current.MainWindow!,
-                "CERRAR SESIÓN",
-                live > 0
-                    ? $"¿Cerrar todo y detener {live} proceso(s) en juego? Los accesos de la sesión también se cierran."
-                    : "¿Finalizar la sesión? No hay procesos en juego en este momento.",
-                "CERRAR TODO", "SEGUIR"));
-        if (!confirmed) return;
         try { _launchCts?.Cancel(); } catch { }
+        _sentinel.ResetSessionState();
         _launcher.CloseSession(4000, AutoKillTree);
+        _ = _discordRpc.ClearPresenceAsync();
         _sessionTimer.Stop();
         RestoreDndIfActive();
         if (_prevPowerScheme != null)
@@ -677,18 +762,31 @@ public sealed partial class MainViewModel : ObservableObject
         }
         catch { }
         var dur = DateTime.Now - _sessionStart;
+        RefreshSlotStates();
+        UpdateSysInfo();
         StatusLine = $"Sesión finalizada · {dur:hh\\:mm\\:ss}.";
-        try
-        {
-            var toast = new Microsoft.Toolkit.Uwp.Notifications.ToastContentBuilder()
-                .AddText($"Sesión: {SelectedLoadout?.Name}")
-                .AddText($"Duración {dur:hh\\:mm\\:ss}. Todos los procesos cerrados.")
-                .GetToastContent();
-            var notif = new Windows.UI.Notifications.ToastNotification(toast.GetXml());
-            Windows.UI.Notifications.ToastNotificationManager.CreateToastNotifier("Loadout").Show(notif);
-        }
-        catch { }
         PlayCommand.NotifyCanExecuteChanged();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanStop))]
+    private async Task StopAsync()
+    {
+        if (!IsPlaying)
+        {
+            StatusLine = "Nada en juego.";
+            return;
+        }
+        int live = _launcher.GetLiveSessionIds().Count;
+        bool confirmed = await Application.Current.Dispatcher.InvokeAsync(() =>
+            ConfirmDialog.Ask(
+                (Window)Application.Current.MainWindow!,
+                "CERRAR SESIÓN",
+                live > 0
+                    ? $"¿Cerrar todo y detener {live} proceso(s) en juego? Los accesos de la sesión también se cierran."
+                    : "¿Finalizar la sesión? No hay procesos en juego en este momento.",
+                "CERRAR TODO", "SEGUIR"));
+        if (!confirmed) return;
+        await StopSessionCoreAsync();
     }
 
     private void RefreshSlotStates()
@@ -767,5 +865,10 @@ public sealed partial class MainViewModel : ObservableObject
         await LoadSlotsAsync();
         await RefreshCountsAsync();
         StatusLine = "Datos de prueba agregados: Notepad + URL.";
+    }
+
+    public void Dispose()
+    {
+        try { _discordRpc.Dispose(); } catch { }
     }
 }

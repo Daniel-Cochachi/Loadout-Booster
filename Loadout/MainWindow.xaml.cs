@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
@@ -21,8 +21,10 @@ namespace Loadout;
 public partial class MainWindow : FluentWindow
 {
     private const int HOTKEY_ID = 0xB007;
+    private const int DASHBOARD_HOTKEY_ID = 0xB008;
     private const uint MOD_ALT = 0x0001;
     private const uint MOD_CONTROL = 0x0002;
+    private const uint MOD_SHIFT = 0x0004;
     private const uint VK_L = 0x4C;
     private const int WM_HOTKEY = 0x0312;
 
@@ -45,6 +47,14 @@ public partial class MainWindow : FluentWindow
         var db = (DatabaseService)Application.Current.Properties["Db"]!;
         _vm = new MainViewModel(db);
         DataContext = _vm;
+        _vm.GameAutoDetected += (_, gameName) =>
+        {
+            Dispatcher.Invoke(() =>
+            {
+                try { Tray.ShowBalloonTip("⚡ Loadout Guardián", $"Detectado {gameName}. Modo Gaming y Discord RPC activados.", Hardcodet.Wpf.TaskbarNotification.BalloonIcon.Info); }
+                catch { }
+            });
+        };
         _vm.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName == nameof(MainViewModel.SelectedLoadout))
@@ -55,8 +65,13 @@ public partial class MainWindow : FluentWindow
         AnimateCarouselEntrance();
         FadeInSparkline();
         try { _minToTray = await Db.GetSettingAsync("MinimizeToTray", "true") == "true"; } catch { }
+        StateChanged += MainWindow_StateChanged;
+        IsVisibleChanged += MainWindow_IsVisibleChanged;
         _vm.StartMonitor();
-        _ = WarmUpBoostAsync();
+        _trayRamTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(6) };
+        _trayRamTimer.Tick += (_, _) => UpdateTrayRamIcon();
+        _trayRamTimer.Start();
+        UpdateTrayRamIcon();
         _ = CleanupOrphanCoversAsync();
         _ = CheckUpdatesAsync();
     }
@@ -136,12 +151,37 @@ public partial class MainWindow : FluentWindow
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        if (msg == WM_HOTKEY && wParam.ToInt32() == HOTKEY_ID)
+        if (msg == WM_HOTKEY)
         {
-            handled = true;
-            Dispatcher.Invoke(() => Tray_Open(this, new RoutedEventArgs()));
+            int id = wParam.ToInt32();
+            if (id == HOTKEY_ID)
+            {
+                handled = true;
+                Dispatcher.Invoke(() => Tray_Open(this, new RoutedEventArgs()));
+            }
+            else if (id == DASHBOARD_HOTKEY_ID)
+            {
+                handled = true;
+                Dispatcher.Invoke(ToggleDashboard);
+            }
         }
         return IntPtr.Zero;
+    }
+
+    private static (uint modifiers, uint vk) ParseDashboardHotkey(string text)
+    {
+        uint mod = 0;
+        uint vk = 0x7A; // VK_F11 default
+        if (text.Contains("Ctrl", StringComparison.OrdinalIgnoreCase)) mod |= MOD_CONTROL;
+        if (text.Contains("Alt", StringComparison.OrdinalIgnoreCase)) mod |= MOD_ALT;
+        if (text.Contains("Shift", StringComparison.OrdinalIgnoreCase)) mod |= MOD_SHIFT;
+
+        if (text.Contains("F10", StringComparison.OrdinalIgnoreCase)) vk = 0x79;
+        else if (text.Contains("F11", StringComparison.OrdinalIgnoreCase)) vk = 0x7A;
+        else if (text.Contains("F12", StringComparison.OrdinalIgnoreCase)) vk = 0x7B;
+        else if (text.Contains("D", StringComparison.OrdinalIgnoreCase)) vk = 0x44;
+
+        return (mod, vk);
     }
 
     private async Task ApplyHotkeyAsync()
@@ -150,11 +190,21 @@ public partial class MainWindow : FluentWindow
         try
         {
             UnregisterHotKey(_hwnd.Handle, HOTKEY_ID);
+            UnregisterHotKey(_hwnd.Handle, DASHBOARD_HOTKEY_ID);
             string? on = await Db.GetSettingAsync("HotkeyEnabled", "true");
             bool armed = false;
             if (on == "true")
                 armed = RegisterHotKey(_hwnd.Handle, HOTKEY_ID, MOD_CONTROL | MOD_ALT, VK_L);
             if (_vm != null) _vm.HotkeyArmed = armed;
+
+            string? dashOn = await Db.GetSettingAsync("DashboardEnabled", "true");
+            if (dashOn == "true")
+            {
+                string hk = await Db.GetSettingAsync("DashboardHotkey", "Ctrl + F11 (Recomendado)") ?? "Ctrl + F11 (Recomendado)";
+                var (mod, vk) = ParseDashboardHotkey(hk);
+                RegisterHotKey(_hwnd.Handle, DASHBOARD_HOTKEY_ID, mod, vk);
+                _dashboardWindow?.UpdateHotkeyHint(hk.Replace(" (Recomendado)", ""));
+            }
         }
         catch { }
     }
@@ -163,10 +213,17 @@ public partial class MainWindow : FluentWindow
     {
         try
         {
-            if (_hwnd != null) UnregisterHotKey(_hwnd.Handle, HOTKEY_ID);
+            if (_hwnd != null)
+            {
+                UnregisterHotKey(_hwnd.Handle, HOTKEY_ID);
+                UnregisterHotKey(_hwnd.Handle, DASHBOARD_HOTKEY_ID);
+            }
         }
         catch { }
+        try { _trayRamTimer?.Stop(); } catch { }
+        try { _dashboardWindow?.Close(); } catch { }
         try { _vm?.RestoreDndIfActive(); } catch { }
+        try { _vm?.Dispose(); } catch { }
         try { Tray.Dispose(); } catch { }
         base.OnClosed(e);
     }
@@ -694,6 +751,64 @@ public partial class MainWindow : FluentWindow
     private async void Tray_PlayFav(object sender, RoutedEventArgs e)
         => await TogglePlayFavoriteAsync();
 
+    private void MainWindow_StateChanged(object? sender, EventArgs e)
+    {
+        bool suspended = WindowState == WindowState.Minimized || !IsVisible;
+        if (_vm != null) _vm.IsWindowSuspended = suspended;
+        if (suspended) BoostService.TrimSelf();
+    }
+
+    private void MainWindow_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        bool suspended = !IsVisible || WindowState == WindowState.Minimized;
+        if (_vm != null) _vm.IsWindowSuspended = suspended;
+        if (suspended) BoostService.TrimSelf();
+    }
+
+    private System.Windows.Threading.DispatcherTimer? _trayRamTimer;
+    private InGameDashboardWindow? _dashboardWindow;
+
+    private void UpdateTrayRamIcon()
+    {
+        try
+        {
+            var ci = new Microsoft.VisualBasic.Devices.ComputerInfo();
+            double totalGb = ci.TotalPhysicalMemory / (1024.0 * 1024 * 1024.0);
+            double availGb = ci.AvailablePhysicalMemory / (1024.0 * 1024 * 1024.0);
+            double usedGb = totalGb - availGb;
+
+            var (icon, tip) = TrayIconRamService.GenerateRamIcon(usedGb, totalGb);
+            if (icon != null)
+            {
+                var oldIcon = Tray.Icon;
+                Tray.Icon = icon;
+                try { oldIcon?.Dispose(); } catch { }
+            }
+            Tray.ToolTipText = tip;
+        }
+        catch { }
+    }
+
+    public void ToggleDashboard()
+    {
+        try
+        {
+            if (_dashboardWindow == null)
+            {
+                _dashboardWindow = new InGameDashboardWindow(Db, _vm);
+                _ = Task.Run(async () =>
+                {
+                    string hk = await Db.GetSettingAsync("DashboardHotkey", "Ctrl + F11 (Recomendado)") ?? "Ctrl + F11 (Recomendado)";
+                    Dispatcher.Invoke(() => _dashboardWindow?.UpdateHotkeyHint(hk.Replace(" (Recomendado)", "")));
+                });
+            }
+            _dashboardWindow.ToggleVisibility();
+        }
+        catch { }
+    }
+
+    private void Tray_Dashboard(object sender, RoutedEventArgs e) => ToggleDashboard();
+
     private void Tray_Boost(object sender, RoutedEventArgs e)
     {
         _ = Task.Run(() =>
@@ -704,7 +819,9 @@ public partial class MainWindow : FluentWindow
             {
                 var bs = new BoostService();
                 bs.GetMemory(out _, out double before);
-                n = bs.TrimWorkingSets();
+                var sessionPids = _vm?.GetSessionPids();
+                var sessionNames = _vm?.GetSessionNames();
+                n = bs.TrimWorkingSets(sessionPids, sessionNames);
                 bs.GetMemory(out _, out double after);
                 freed = after - before;
                 BoostService.TrimSelf();

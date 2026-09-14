@@ -4,16 +4,18 @@ using Microsoft.Win32;
 namespace Loadout.Services;
 
 /// <summary>
-/// Modo Ranked: No Molestar reversible. Guarda los valores previos del
-/// sistema y los restaura al cerrar sesión. Todo best-effort: nunca lanza.
+/// Modo No Molestar reversible para juegos (Focus Assist / Bloqueo de notificaciones).
+/// Guarda los valores previos del sistema y los restaura religiosamente al cerrar la sesión.
 /// </summary>
 public sealed class DndService
 {
     private const string ToastKey = @"Software\Microsoft\Windows\CurrentVersion\PushNotifications";
     private const string NocKey = @"Software\Microsoft\Windows\CurrentVersion\Notifications\Settings\NOC_GLOBAL_SETTING";
+    private const string QuietHoursKey = @"Software\Microsoft\Windows\CurrentVersion\QuietHours";
 
     private int? _prevToast;
     private int? _prevNoc;
+    private int? _prevQuiet;
     public bool IsActive { get; private set; }
 
     public void Enable()
@@ -23,8 +25,11 @@ public sealed class DndService
         {
             _prevToast = ReadDword(ToastKey, "ToastEnabled");
             _prevNoc = ReadDword(NocKey, "Enabled");
+            _prevQuiet = ReadDword(QuietHoursKey, "UserSetProfile");
+
             WriteDword(ToastKey, "ToastEnabled", 0);
             WriteDword(NocKey, "Enabled", 0);
+            WriteDword(QuietHoursKey, "UserSetProfile", 2); // 2 = Priority / Alarms Only (Focus Assist)
             IsActive = true;
         }
         catch (Exception ex)
@@ -41,8 +46,12 @@ public sealed class DndService
         {
             if (_prevToast.HasValue) WriteDword(ToastKey, "ToastEnabled", _prevToast.Value);
             else DeleteValue(ToastKey, "ToastEnabled");
+
             if (_prevNoc.HasValue) WriteDword(NocKey, "Enabled", _prevNoc.Value);
             else DeleteValue(NocKey, "Enabled");
+
+            if (_prevQuiet.HasValue) WriteDword(QuietHoursKey, "UserSetProfile", _prevQuiet.Value);
+            else DeleteValue(QuietHoursKey, "UserSetProfile");
         }
         catch (Exception ex)
         {
@@ -65,9 +74,8 @@ public sealed class DndService
     {
         try
         {
-            using var k = Registry.CurrentUser.CreateSubKey(path)
-                ?? throw new InvalidOperationException("No se pudo abrir registro.");
-            k.SetValue(name, value, RegistryValueKind.DWord);
+            using var k = Registry.CurrentUser.CreateSubKey(path);
+            k?.SetValue(name, value, RegistryValueKind.DWord);
         }
         catch { }
     }
